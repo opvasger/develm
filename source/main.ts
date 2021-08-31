@@ -33,12 +33,12 @@ run = output (Json.Encode.string "Hello")
 export default async function (_: Array<string>) {
   const flags = await withTemporaryFolder({ prefix: "develm" }, readFlags);
   console.log({ flags });
+  throw "TODO";
 }
 
 async function readFlags(tempDirPath: string): Promise<void> {
   const moduleFileName = `Main.elm`;
   const compiledFileName = `main.js`;
-
   await Deno.writeTextFile(`${tempDirPath}/${moduleFileName}`, elmModule);
   await Deno.writeTextFile(`${tempDirPath}/elm.json`, elmJson);
   await Deno.run({
@@ -54,7 +54,6 @@ async function readFlags(tempDirPath: string): Promise<void> {
     stdout: "piped",
     stderr: "piped",
   }).stderrOutput();
-
   const scope: any = {};
   eval(
     (await Deno.readTextFile(`${tempDirPath}/${compiledFileName}`)).replace(
@@ -62,7 +61,6 @@ async function readFlags(tempDirPath: string): Promise<void> {
       "(scope)"
     )
   );
-
   return await new Promise(function (resolve) {
     scope.Elm.Main.init().ports.output.subscribe(resolve);
   });
