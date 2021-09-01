@@ -1,3 +1,3 @@
-import main from "./source/main.ts";
+import main from "./src/main.ts";
 
-if (import.meta.main) main(Deno.args);
+if (import.meta.main) await main(Deno.args);

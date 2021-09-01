@@ -6,6 +6,7 @@ const elmJson = JSON.stringify({
     direct: {
       "elm/core": "1.0.5",
       "elm/json": "1.1.3",
+      "opvasger/develm": "1.0.0",
     },
     indirect: {},
   },
@@ -18,30 +19,35 @@ const elmJson = JSON.stringify({
 const elmModule = `port module Main exposing (main)
 
 import Json.Encode
+import Dev
+import DevElm
 
 port output : Json.Encode.Value -> Cmd msg
+
 main : Program () () ()
 main = Platform.worker 
-  { init = always ((), run)
+  { init = always ((), output (DevElm.encodeConfiguration Dev.config))
   , update = (always (always ((), Cmd.none)))
   , subscriptions = always Sub.none
   }
-
-run = output (Json.Encode.string "Hello")
 `;
 
 export default async function (_: Array<string>) {
   const flags = await withTemporaryFolder({ prefix: "develm" }, readFlags);
-  console.log({ flags });
-  throw "TODO";
+  throw JSON.stringify(flags);
 }
 
 async function readFlags(tempDirPath: string): Promise<void> {
-  const moduleFileName = `Main.elm`;
-  const compiledFileName = `main.js`;
+  const moduleFileName = "Main.elm";
+  const compiledFileName = "main.js";
+  const configFileName = "Dev.elm";
   await Deno.writeTextFile(`${tempDirPath}/${moduleFileName}`, elmModule);
   await Deno.writeTextFile(`${tempDirPath}/elm.json`, elmJson);
-  await Deno.run({
+  await Deno.writeTextFile(
+    `${tempDirPath}/${configFileName}`,
+    await Deno.readTextFile(configFileName)
+  );
+  const error = await Deno.run({
     cmd: [
       "elm",
       "make",
@@ -54,6 +60,9 @@ async function readFlags(tempDirPath: string): Promise<void> {
     stdout: "piped",
     stderr: "piped",
   }).stderrOutput();
+
+  console.log(new TextDecoder().decode(error));
+
   const scope: any = {};
   eval(
     (await Deno.readTextFile(`${tempDirPath}/${compiledFileName}`)).replace(
