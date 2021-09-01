@@ -1,11 +1,11 @@
 module DevElm exposing
-    ( Configuration
+    ( Configuration, doNothing
     , encodeConfiguration
     )
 
 {-|
 
-@docs Configuration
+@docs Configuration, doNothing
 
 @docs encodeConfiguration
 
@@ -18,6 +18,13 @@ import Json.Encode
 -}
 type Configuration
     = Configuration {}
+
+
+{-| A configuration that does nothing at all.
+-}
+doNothing : Configuration
+doNothing =
+    Configuration {}
 
 
 {-| This function is used internally by the binary or deno-module. It simply encodes the configuration is JSON-format.

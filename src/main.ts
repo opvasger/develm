@@ -6,7 +6,7 @@ const elmJson = JSON.stringify({
     direct: {
       "elm/core": "1.0.5",
       "elm/json": "1.1.3",
-      "opvasger/develm": "1.0.0",
+      "opvasger/develm": "1.1.0",
     },
     indirect: {},
   },
