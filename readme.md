@@ -2,23 +2,27 @@
 
 Develop Elm programs with ease!
 
+## Setup
+
+DevElm is released as a [binary](https://github.com/opvasger/develm/releases) and [module](https://deno.land/x/develm) for [deno](https://deno.land/#installation).
+
+DevElm relies on [elm](https://github.com/elm/compiler/releases) being installed and available.
+
+Documentation is available on the [elm-package](https://package.elm-lang.org/packages/opvasger/develm/latest) website.
+
 ## Usage
 
-DevElm is available as [binary releases](https://github.com/opvasger/develm/releases), or using Deno, which can be installed very easily [like this](https://deno.land/#installation).
+1. run `elm install opvasger/develm` to install the configuration-package.
+2. Make a `Dev.elm` in the same directory as the projects `elm.json`. It should import `DevElm` and expose a `config` of type `Configuration` - for example like this:
 
-DevElm relies on the [Elm-compiler](https://github.com/elm/compiler/releases) being installed and available.
+```elm
+module Dev exposing (config)
 
-1. Make a `Dev.elm` module in a source-directory
-2. install `opvasger/develm`
-3. expose a `config` of type `DevElm.Configuration` from `Dev.elm`
-4. run `develm` in that source-directory
+import DevElm exposing (defaultBuild)
 
-Usage from the terminal should be straight-forward:
-
-```bash
-# using the binary
-develm
-
-# using deno
-deno run https://deno.land/x/develm/mod.ts
+config : DevElm.Configuration
+config =
+    DevElm.Build { defaultBuild | mode = DevElm.Optimize }
 ```
+
+3. run `develm` or `deno run https://deno.land/x/develm/mod.ts` to perform configured task(s).

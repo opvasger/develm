@@ -27,6 +27,11 @@ import Json.Encode
 
 
 {-| Configuration for the `develm` program.
+
+  - `Batch` performs tasks unordered.
+  - `Sequence` performs tasks sequentially.
+  - `OneOf` performs tasks optionally - `OneOf [("build", Build defaultBuild)]` is performed with `develm build`.
+
 -}
 type Configuration
     = Log LogConfiguration
@@ -142,9 +147,9 @@ encodeFormat format =
 
 {-| Configure what mode the program should be built in.
 
-  - `Develop` is a development-build
-  - `Debug` is a development-build that includes the time-travelling debugger
-  - `Optimize` is a production-build that includes minification
+  - `Develop` is a development-build.
+  - `Debug` is a development-build that includes the time-travelling debugger.
+  - `Optimize` is a production-build that includes minification.
 
 -}
 type Mode
@@ -166,7 +171,7 @@ encodeMode mode =
             Json.Encode.string "optimize"
 
 
-{-| The default-configuration for building Elm programs
+{-| The default-configuration for building Elm programs. It makes an unoptimized build of a module named `Main` into `build/main.js`
 -}
 defaultBuild : BuildConfiguration
 defaultBuild =
