@@ -20,7 +20,7 @@ DevElm relies on the [Elm-compiler](https://github.com/elm/compiler/releases) be
 Usage from the terminal should be straight-forward:
 
 ```bash
-# using a binary
+# using the binary
 develm
 
 # using deno

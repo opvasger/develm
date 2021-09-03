@@ -1,18 +1,11 @@
 import { gzip } from "https://deno.land/x/denoflate@1.2.1/mod.ts";
 
-type Target =
-  | "x86_64-unknown-linux-gnu"
-  | "x86_64-apple-darwin"
-  | "x86_64-pc-windows-msvc";
-
-function toTargetExtension(target: Target): string {
-  if (target === "x86_64-pc-windows-msvc") return ".exe";
-  return "";
-}
-
-const buildFor: Array<Target> = ["x86_64-pc-windows-msvc"];
+import throwIncompatible from "./version.ts";
+import { sequencePromises } from "../src/help.ts";
 
 if (import.meta.main) {
+  await throwIncompatible();
+  const buildFor: Array<Target> = ["x86_64-pc-windows-msvc"];
   await Deno.mkdir("build", { recursive: true });
   await sequencePromises(
     buildFor.map((platform) => () => buildBinary(platform)),
@@ -51,9 +44,14 @@ export async function buildBinary(target: Target): Promise<void> {
   await Deno.remove("build/develm" + toTargetExtension(target));
 }
 
-export function sequencePromises<T>(
-  promises: Array<(prev: T) => Promise<T>>,
-  init: T
-): Promise<T> {
-  return promises.reduce((prev, cur) => prev.then(cur), Promise.resolve(init));
+// Target
+
+type Target =
+  | "x86_64-unknown-linux-gnu"
+  | "x86_64-apple-darwin"
+  | "x86_64-pc-windows-msvc";
+
+function toTargetExtension(target: Target): string {
+  if (target === "x86_64-pc-windows-msvc") return ".exe";
+  return "";
 }
