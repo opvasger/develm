@@ -2,10 +2,6 @@
 
 Develop Elm programs with ease!
 
-## Warning
-
-This project currently does nothing, and won't be useful for at least another minor version.
-
 ## Usage
 
 DevElm is available as [binary releases](https://github.com/opvasger/develm/releases), or using Deno, which can be installed very easily [like this](https://deno.land/#installation).
