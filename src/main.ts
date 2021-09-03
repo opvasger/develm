@@ -32,7 +32,7 @@ export type DevelopmentConfiguration = {
   packageModuleSource: string;
 };
 
-export const version: [number, number, number] = [2, 0, 0];
+export const version: [number, number, number] = [2, 0, 1];
 
 export default async function (
   args: Array<string>,
@@ -114,16 +114,14 @@ function toReadConfiguration(devConfig?: DevelopmentConfiguration) {
       tempDirPath
     );
 
-    const scope: any = {};
-    eval(
-      (await Deno.readTextFile(`${tempDirPath}/${compiledFileName}`)).replace(
-        "(this)",
-        "(scope)"
-      )
+    const compiled = await Deno.readTextFile(
+      `${tempDirPath}/${compiledFileName}`
     );
-    return await new Promise(function (resolve) {
-      scope.Elm.Main.init().ports.output.subscribe(resolve);
-    });
+    const scope: any = {};
+    eval(compiled.replace("(this)", "(scope)"));
+    return await new Promise((resolve) =>
+      scope.Elm.Main.init().ports.output.subscribe(resolve)
+    );
   };
 }
 
