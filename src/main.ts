@@ -117,10 +117,9 @@ function toReadConfiguration(devConfig?: DevelopmentConfiguration) {
     const compiled = await Deno.readTextFile(
       `${tempDirPath}/${compiledFileName}`
     );
-    const scope: any = {};
-    eval(compiled.replace("(this)", "(scope)"));
+    eval(compiled.replaceAll("(this)", "(globalThis)"));
     return await new Promise((resolve) =>
-      scope.Elm.Main.init().ports.output.subscribe(resolve)
+      (globalThis as any).Elm.Main.init().ports.output.subscribe(resolve)
     );
   };
 }

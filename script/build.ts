@@ -1,7 +1,7 @@
 import { gzip } from "https://deno.land/x/denoflate@1.2.1/mod.ts";
 
 import throwIncompatible from "./version.ts";
-import { sequencePromises } from "../src/help.ts";
+import { sequencePromises, runPiped } from "../src/help.ts";
 
 if (import.meta.main) {
   await throwIncompatible();
@@ -15,23 +15,16 @@ if (import.meta.main) {
 
 export async function buildBinary(target: Target): Promise<void> {
   console.log(`\nbuilding binaries for ${target}`);
-  const error = await Deno.run({
-    cmd: [
-      "deno",
-      "compile",
-      "--allow-all",
-      "--target",
-      target,
-      "--output",
-      `build/develm`,
-      "mod.ts",
-    ],
-    stderr: "piped",
-    stdin: "piped",
-    stdout: "piped",
-  }).stderrOutput();
-
-  console.log(new TextDecoder().decode(error));
+  await runPiped([
+    "deno",
+    "compile",
+    "--allow-all",
+    "--target",
+    target,
+    "--output",
+    `build/develm`,
+    "mod.ts",
+  ]);
 
   await Deno.writeFile(
     `build/develm_${target}.gz`,
