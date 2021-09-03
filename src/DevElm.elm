@@ -2,6 +2,7 @@ module DevElm exposing
     ( Configuration(..)
     , LogConfiguration(..)
     , BuildConfiguration, Format(..), Mode(..), defaultBuild
+    , ServeConfiguration, defaultServe
     , encodeConfiguration
     )
 
@@ -13,6 +14,8 @@ module DevElm exposing
 
 @docs BuildConfiguration, Format, Mode, defaultBuild
 
+@docs ServeConfiguration, defaultServe
+
 
 ## Internals
 
@@ -22,7 +25,7 @@ These definitions are for program-authors who want to consume the configuration 
 
 -}
 
-import Dict
+import Dict exposing (Dict)
 import Json.Encode
 
 
@@ -36,6 +39,7 @@ import Json.Encode
 type Configuration
     = Log LogConfiguration
     | Build BuildConfiguration
+    | Serve ServeConfiguration
     | Batch (List Configuration)
     | Sequence (List Configuration)
     | OneOf (List ( String, Configuration ))
@@ -53,6 +57,9 @@ encodeConfiguration config =
 
                 Build buildConfig ->
                     ( "Build", encodeBuildConfiguration buildConfig )
+
+                Serve serveConfig ->
+                    ( "Serve", encodeServeConfiguration serveConfig )
 
                 Batch configs ->
                     ( "Batch", Json.Encode.list encodeConfiguration configs )
@@ -108,6 +115,17 @@ type alias BuildConfiguration =
     , outputPath : Maybe String
     , format : Format
     , mode : Mode
+    }
+
+
+{-| The default-configuration for building Elm programs. It makes an unoptimized build of a module named `Main` into `build/main.js`
+-}
+defaultBuild : BuildConfiguration
+defaultBuild =
+    { moduleName = defaultServe.moduleName
+    , outputPath = Just defaultServe.outputPath
+    , format = ImmediatelyInvokedFunctionInvocation
+    , mode = defaultServe.mode
     }
 
 
@@ -171,12 +189,57 @@ encodeMode mode =
             Json.Encode.string "optimize"
 
 
-{-| The default-configuration for building Elm programs. It makes an unoptimized build of a module named `Main` into `build/main.js`
+
+-- Serve
+
+
+{-| Configure DevElm to build an elm program.
 -}
-defaultBuild : BuildConfiguration
-defaultBuild =
-    { moduleName = "Main"
-    , outputPath = Just "build/main.js"
-    , format = ImmediatelyInvokedFunctionInvocation
-    , mode = Develop
+type alias ServeConfiguration =
+    { moduleName : String
+    , hostname : String
+    , port_ : Int
+    , mode : Mode
+    , outputPath : String
+    , documentPath : Maybe String
+    , contentTypes : Dict String String
+    , headers : Dict String String
     }
+
+
+{-| The default-configuration for serving Elm programs. It assumes no HTML-document is present.
+-}
+defaultServe : ServeConfiguration
+defaultServe =
+    { moduleName = "Main"
+    , hostname = "localhost"
+    , port_ = 8080
+    , mode = Develop
+    , outputPath = "build/main.js"
+    , documentPath = Nothing
+    , headers = Dict.empty
+    , contentTypes =
+        Dict.fromList
+            [ ( "html", "text/html" )
+            , ( "js", "text/javascript" )
+            , ( "json", "application/json" )
+            , ( "woff", "font/woff" )
+            , ( "png", "image/png" )
+            , ( "txt", "text/plain" )
+            , ( "svg", "image/svg+xml" )
+            ]
+    }
+
+
+encodeServeConfiguration : ServeConfiguration -> Json.Encode.Value
+encodeServeConfiguration { moduleName, hostname, port_, mode, outputPath, documentPath, contentTypes, headers } =
+    Json.Encode.object
+        [ ( "moduleName", Json.Encode.string moduleName )
+        , ( "hostname", Json.Encode.string hostname )
+        , ( "port", Json.Encode.int port_ )
+        , ( "mode", encodeMode mode )
+        , ( "outputPath", Json.Encode.string outputPath )
+        , ( "documentPath", Maybe.withDefault Json.Encode.null (Maybe.map Json.Encode.string documentPath) )
+        , ( "contentTypes", Json.Encode.dict identity Json.Encode.string contentTypes )
+        , ( "headers", Json.Encode.dict identity Json.Encode.string headers )
+        ]

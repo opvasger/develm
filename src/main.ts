@@ -1,5 +1,6 @@
 import log, { LogConfiguration } from "./main/log.ts";
 import build, { BuildConfiguration } from "./main/build.ts";
+import serve, { ServeConfiguration } from "./main/serve.ts";
 import {
   sequencePromises,
   withTemporaryFolder,
@@ -16,6 +17,10 @@ type Configuration =
   | {
       type: "Build";
       value: BuildConfiguration;
+    }
+  | {
+      type: "Serve";
+      value: ServeConfiguration;
     }
   | {
       type: "Batch";
@@ -56,6 +61,9 @@ function toRunConfiguration(args: Array<string>) {
         break;
       case "Build":
         await build(config.value);
+        break;
+      case "Serve":
+        await serve(config.value);
         break;
       case "Batch":
         await Promise.all(config.value.map(toRunConfiguration(args)));
