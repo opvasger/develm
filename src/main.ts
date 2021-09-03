@@ -6,6 +6,8 @@ import {
   runPiped,
 } from "../src/help.ts";
 
+import { version, elmModule } from "../build/template.ts";
+
 type Configuration =
   | {
       type: "Log";
@@ -31,8 +33,6 @@ type Configuration =
 export type DevelopmentConfiguration = {
   packageModuleSource: string;
 };
-
-export const version: [number, number, number] = [3, 0, 0];
 
 export default async function (
   args: Array<string>,
@@ -65,7 +65,6 @@ function toRunConfiguration(args: Array<string>) {
           config.value.map((config) => () => toRunConfiguration(args)(config)),
           undefined
         );
-
         break;
       case "OneOf":
         const configAtKey = config.value[args[0]];
@@ -147,19 +146,3 @@ function toElmJson(devConfig?: DevelopmentConfiguration) {
     },
   };
 }
-
-const elmModule = `port module Main exposing (main)
-
-import Json.Encode
-import Dev
-import DevElm
-
-port output : Json.Encode.Value -> Cmd msg
-
-main : Program () () ()
-main = Platform.worker 
-  { init = always ((), output (DevElm.encodeConfiguration Dev.config))
-  , update = (always (always ((), Cmd.none)))
-  , subscriptions = always Sub.none
-  }
-`;
