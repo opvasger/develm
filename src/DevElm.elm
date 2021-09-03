@@ -3,7 +3,6 @@ module DevElm exposing
     , LogConfiguration(..)
     , BuildConfiguration, Format(..), Mode(..), defaultBuild
     , encodeConfiguration
-    , doNothing
     )
 
 {-|
@@ -20,13 +19,6 @@ module DevElm exposing
 These definitions are for program-authors who want to consume the configuration for their own programs.
 
 @docs encodeConfiguration
-
-
-## Deprecated
-
-These definitions are removed in the next major version.
-
-@docs doNothing
 
 -}
 
@@ -183,10 +175,3 @@ defaultBuild =
     , format = ImmediatelyInvokedFunctionInvocation
     , mode = Develop
     }
-
-
-{-| A configuration that does nothing at all.
--}
-doNothing : Configuration
-doNothing =
-    Log (Text "")
