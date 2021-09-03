@@ -1,17 +1,12 @@
 import { version } from "../src/main.ts";
 
 export default async function throwIncompatible() {
-  const binaryVersion = version;
-  const packageVersion: [number, number, number] = JSON.parse(
+  const binaryVersion = version.join(".");
+  const packageVersion: string = JSON.parse(
     await Deno.readTextFile("elm.json")
-  )
-    ["version"].split(".")
-    .map((text: string) => parseInt(text));
+  )["version"];
 
-  if (
-    binaryVersion[0] !== packageVersion[0] ||
-    packageVersion[1] > binaryVersion[1]
-  ) {
+  if (binaryVersion !== packageVersion) {
     throw `Incompatible versions. 
 The binary is <${binaryVersion}>
 The package is >${packageVersion}>`;

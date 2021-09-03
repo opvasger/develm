@@ -32,7 +32,7 @@ export type DevelopmentConfiguration = {
   packageModuleSource: string;
 };
 
-export const version: [number, number, number] = [2, 0, 1];
+export const version: [number, number, number] = [2, 0, 2];
 
 export default async function (
   args: Array<string>,
