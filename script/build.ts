@@ -14,7 +14,7 @@ if (import.meta.main) {
 
 export async function buildTemplate() {
   console.log("\nbuilding template-module");
-  const elmModule = await Deno.readTextFile("src/Main.elm");
+  const elmModule = await Deno.readTextFile("template/Main.elm");
   const version = JSON.parse(await Deno.readTextFile("elm.json"))
     .version.split(".")
     .map((n: string) => parseInt(n));
