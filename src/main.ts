@@ -77,9 +77,13 @@ function toRunConfiguration(args: Array<string>) {
       case "OneOf":
         const configAtKey = config.value[args[0]];
         if (configAtKey === undefined)
-          throw `invalid argument ${args[0]}. Expected one of: ${Object.keys(
-            config.value
-          ).join(",")}`;
+          return console.log(
+            `I didn't recognize "${
+              args[0]
+            }". Did you mean one of these?: ${Object.keys(config.value)
+              .map((str) => `\n - ${str}`)
+              .join("")}`
+          );
         await toRunConfiguration(args.slice(1))(configAtKey);
         break;
 
