@@ -26,7 +26,7 @@ export default async function (config: BuildConfiguration): Promise<void> {
   const compiledFileName = "main.js";
   const cmd = ["elm", "make"];
   if (config.mode !== "develop") cmd.push(`--${config.mode}`);
-  withTemporaryFolder({}, async (tempDir) => {
+  await withTemporaryFolder({}, async (tempDir) => {
     const tempOutputPath = `${tempDir}/${compiledFileName}`;
     cmd.push(`--output=${tempOutputPath}`, moduleFilePath);
     await runPiped(cmd);
@@ -49,9 +49,9 @@ export const Elm = scope.Elm;`;
 }
 
 async function minifyCompiledSource(compiled: string): Promise<string> {
+  //
   // This global relies on the project imported at the top.
-  // It isn't perfect, but the best I can do at the moment.
-  // Deno doesn't support minification in any appropriate way yet.
+  //
   const { minify } = (globalThis as any).Terser;
   const result = await minify(compiled, {
     mangle: true,

@@ -15,52 +15,36 @@ export type ServeConfiguration = {
 
 export default async function (config: ServeConfiguration) {
   for await (const request of serve(config)) {
-    const response: Response = {
-      status: 404,
-      body: undefined,
-      headers: new Headers(config.headers),
-    };
-    try {
-      if (request.url == "/") {
-        const startedAt = performance.now();
-        await build({
-          format: "iife",
-          mode: config.mode,
-          moduleName: config.moduleName,
-          outputPath: config.outputPath,
-        });
-        const endedAt = performance.now();
-        console.log(`rebuilt in ${(endedAt - startedAt) / 1000} seconds`);
-      }
-
-      response.body = await Deno.readFile(request.url.slice(1));
-      response.status = 200;
-      Object.entries(config.contentTypes).some(([key, value]) => {
-        const isType = request.url.endsWith(`.${key}`);
-        if (isType) response.headers?.set("content-type", value);
-        return isType;
-      });
-    } catch (error) {
-      response.body =
-        typeof error === "string"
-          ? toErrorHtml(error)
-          : config.documentPath
-          ? await Deno.readFile(config.documentPath)
-          : await (async () => {
-              await build({
-                format: "iife",
-                mode: config.mode,
-                moduleName: config.moduleName,
-                outputPath: config.outputPath,
-              });
-              const output = await Deno.readTextFile(config.outputPath);
-              return toProgramHtml(output, config.moduleName);
-            })();
-      response.headers?.set("content-type", config.contentTypes["html"]);
-      response.status = 200;
+    let error = null;
+    if (request.url === "/") {
+      request.url = "/index.html";
+      error = await build({
+        format: "iife",
+        mode: config.mode,
+        moduleName: config.moduleName,
+        outputPath: config.outputPath,
+      }).catch((error) => error);
     }
 
-    request.respond(response);
+    const result = error
+      ? {
+          status: 400,
+          body: toErrorHtml(error),
+          headers: new Headers(config.headers),
+        }
+      : await Deno.readFile(request.url.slice(1))
+          .then((body) => ({
+            status: 200,
+            body,
+            headers: new Headers(config.headers),
+          }))
+          .catch((error) => ({
+            status: 404,
+            body: JSON.stringify(error),
+            headers: new Headers(config.headers),
+          }));
+
+    await request.respond(result);
   }
 }
 
@@ -88,7 +72,7 @@ function toProgramHtml(compiled: string, moduleName: string) {
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Application</title>
+        <title>DevElm | ${moduleName}</title>
       </head>
       <body>
          <script>

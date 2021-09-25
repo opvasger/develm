@@ -33,7 +33,8 @@ export async function runPiped(
   });
   const status = await process.status();
   if (!status.success || status.code !== 0) {
-    throw new TextDecoder().decode(await process.stderrOutput());
+    const stdErr = await process.stderrOutput();
+    throw new TextDecoder().decode(stdErr);
   }
   return new TextDecoder().decode(await process.output());
 }
