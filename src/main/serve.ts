@@ -1,4 +1,4 @@
-import { serve, Response } from "https://deno.land/std@0.106.0/http/mod.ts";
+import { serve } from "https://deno.land/std@0.106.0/http/mod.ts";
 
 import build from "./build.ts";
 
@@ -17,7 +17,7 @@ export default async function (config: ServeConfiguration) {
   for await (const request of serve(config)) {
     let error = null;
     if (request.url === "/") {
-      request.url = "/index.html";
+      if (config.documentPath) request.url = `/${config.documentPath}`;
       error = await build({
         format: "iife",
         mode: config.mode,
@@ -38,11 +38,19 @@ export default async function (config: ServeConfiguration) {
             body,
             headers: new Headers(config.headers),
           }))
-          .catch((error) => ({
-            status: 404,
-            body: JSON.stringify(error),
-            headers: new Headers(config.headers),
-          }));
+          .catch((error) =>
+            request.url === "/" && config.documentPath === null
+              ? {
+                  status: 200,
+                  body: toProgramHtml(config.outputPath, config.moduleName),
+                  headers: new Headers(config.headers),
+                }
+              : {
+                  status: 404,
+                  body: JSON.stringify(error),
+                  headers: new Headers(config.headers),
+                }
+          );
 
     await request.respond(result);
   }
@@ -65,7 +73,7 @@ function toErrorHtml(error: string) {
 `;
 }
 
-function toProgramHtml(compiled: string, moduleName: string) {
+function toProgramHtml(outputPath: string, moduleName: string) {
   return `<!DOCTYPE html>
     <html lang="en">
       <head>
@@ -75,8 +83,8 @@ function toProgramHtml(compiled: string, moduleName: string) {
         <title>DevElm | ${moduleName}</title>
       </head>
       <body>
+        <script src="${outputPath}"></script>
          <script>
-            ${compiled}
             Elm.${moduleName}.init({flags:window,node:document.body});
           </script>
       </body>

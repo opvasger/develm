@@ -52,6 +52,57 @@ export default async function (
 }
 
 // Configuration
+function toReadConfiguration(devConfig?: DevelopmentConfiguration) {
+  return async (tempDirPath: string): Promise<Configuration> => {
+    const moduleFileName = "Main.elm";
+    const compiledFileName = "main.js";
+    const configFilePath = await Promise.any<string>(
+      JSON.parse(await Deno.readTextFile("elm.json"))["source-directories"].map(
+        async (srcDir: string) => {
+          const configFilePath = `${srcDir}/Dev.elm`;
+          const { isFile } = await Deno.lstat(configFilePath);
+          if (isFile) {
+            return configFilePath;
+          }
+        }
+      )
+    );
+    await Deno.writeTextFile(`${tempDirPath}/${moduleFileName}`, elmModule);
+    await Deno.writeTextFile(
+      `${tempDirPath}/elm.json`,
+      JSON.stringify(toElmJson(devConfig))
+    );
+    await Deno.writeTextFile(
+      `${tempDirPath}/Dev.elm`,
+      await Deno.readTextFile(configFilePath)
+    );
+
+    if (devConfig) {
+      await Deno.writeTextFile(
+        `${tempDirPath}/DevElm.elm`,
+        devConfig.packageModuleSource
+      );
+    }
+    await runPiped(
+      [
+        "elm",
+        "make",
+        "--optimize",
+        `--output=${compiledFileName}`,
+        moduleFileName,
+      ],
+      tempDirPath
+    );
+
+    const compiled = await Deno.readTextFile(
+      `${tempDirPath}/${compiledFileName}`
+    );
+    eval(compiled.replace("(this)", "(globalThis)"));
+    return await new Promise((resolve) =>
+      (globalThis as any).Elm.Main.init().ports.output.subscribe(resolve)
+    );
+  };
+}
 
 function toRunConfiguration(args: Array<string>) {
   return async (config: Configuration): Promise<void> => {
@@ -90,48 +141,6 @@ function toRunConfiguration(args: Array<string>) {
       default:
         throw `unrecognized configuration: ${JSON.stringify(config)}`;
     }
-  };
-}
-
-function toReadConfiguration(devConfig?: DevelopmentConfiguration) {
-  return async (tempDirPath: string): Promise<Configuration> => {
-    const moduleFileName = "Main.elm";
-    const compiledFileName = "main.js";
-    const configFileName = "Dev.elm";
-    await Deno.writeTextFile(`${tempDirPath}/${moduleFileName}`, elmModule);
-    await Deno.writeTextFile(
-      `${tempDirPath}/elm.json`,
-      JSON.stringify(toElmJson(devConfig))
-    );
-    await Deno.writeTextFile(
-      `${tempDirPath}/${configFileName}`,
-      await Deno.readTextFile(configFileName)
-    );
-
-    if (devConfig) {
-      await Deno.writeTextFile(
-        `${tempDirPath}/DevElm.elm`,
-        devConfig.packageModuleSource
-      );
-    }
-    await runPiped(
-      [
-        "elm",
-        "make",
-        "--optimize",
-        `--output=${compiledFileName}`,
-        moduleFileName,
-      ],
-      tempDirPath
-    );
-
-    const compiled = await Deno.readTextFile(
-      `${tempDirPath}/${compiledFileName}`
-    );
-    eval(compiled.replaceAll("(this)", "(globalThis)"));
-    return await new Promise((resolve) =>
-      (globalThis as any).Elm.Main.init().ports.output.subscribe(resolve)
-    );
   };
 }
 
