@@ -1,4 +1,4 @@
-export const version : [number,number,number] = [4,0,0]
+export const version : [number,number,number] = [4,0,1]
 export const elmModule : string = `port module Main exposing (main)
 
 import Dev

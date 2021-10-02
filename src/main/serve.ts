@@ -28,29 +28,42 @@ export default async function (config: ServeConfiguration) {
 
     const result = error
       ? {
-          status: 400,
-          body: toErrorHtml(error),
-          headers: new Headers(config.headers),
-        }
+        status: 400,
+        body: toErrorHtml(error),
+        headers: new Headers({
+          ...config.headers,
+          "content-type": "text/html",
+        }),
+      }
       : await Deno.readFile(request.url.slice(1))
-          .then((body) => ({
-            status: 200,
-            body,
-            headers: new Headers(config.headers),
-          }))
-          .catch((error) =>
-            request.url === "/" && config.documentPath === null
-              ? {
-                  status: 200,
-                  body: toProgramHtml(config.outputPath, config.moduleName),
-                  headers: new Headers(config.headers),
-                }
-              : {
-                  status: 404,
-                  body: JSON.stringify(error),
-                  headers: new Headers(config.headers),
-                }
-          );
+        .then((body) => ({
+          status: 200,
+          body,
+          headers: new Headers({
+            ...config.headers,
+            "content-type": config.contentTypes[
+              Object.keys(config.contentTypes).find((
+                extension,
+              ) => request.url.endsWith(`.${extension}`)) || ""
+            ],
+          }),
+        }))
+        .catch((error) =>
+          request.url === "/" && config.documentPath === null
+            ? {
+              status: 200,
+              body: toProgramHtml(config.outputPath, config.moduleName),
+              headers: new Headers({
+                ...config.headers,
+                "content-type": "text/html",
+              }),
+            }
+            : {
+              status: 404,
+              body: JSON.stringify(error),
+              headers: new Headers(config.headers),
+            }
+        );
 
     await request.respond(result);
   }
@@ -66,23 +79,25 @@ function toErrorHtml(error: string) {
         color: white;
     }
   </style>
-  <body>${error
-    .split("<")
-    .map((segment) => {
-      if (segment.startsWith("https") && segment.includes(">")) {
-        return segment
-          .split(">")
-          .map((innerSegment, index) => {
-            if (index === 0) {
-              return `<a style="color:white;" target="blank" href="${innerSegment}">${innerSegment}</a>`;
-            }
-            return innerSegment;
-          })
-          .join(">");
-      }
-      return segment;
-    })
-    .join("<")}</body>
+  <body>${
+    error
+      .split("<")
+      .map((segment) => {
+        if (segment.startsWith("https") && segment.includes(">")) {
+          return segment
+            .split(">")
+            .map((innerSegment, index) => {
+              if (index === 0) {
+                return `<a style="color:white;" target="blank" href="${innerSegment}">${innerSegment}</a>`;
+              }
+              return innerSegment;
+            })
+            .join(">");
+        }
+        return segment;
+      })
+      .join("<")
+  }</body>
 </html>
 `;
 }
