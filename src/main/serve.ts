@@ -60,15 +60,29 @@ function toErrorHtml(error: string) {
   return `<html>
   <style>
     body {
-        white-space:pre;
+        white-space:break-spaces;
         background-color: #0c91d8;
         font-family: monospace;
         color: white;
     }
   </style>
-  <body>
-    ${error}
-  </body>
+  <body>${error
+    .split("<")
+    .map((segment) => {
+      if (segment.startsWith("https") && segment.includes(">")) {
+        return segment
+          .split(">")
+          .map((innerSegment, index) => {
+            if (index === 0) {
+              return `<a style="color:white;" target="blank" href="${innerSegment}">${innerSegment}</a>`;
+            }
+            return innerSegment;
+          })
+          .join(">");
+      }
+      return segment;
+    })
+    .join("<")}</body>
 </html>
 `;
 }
