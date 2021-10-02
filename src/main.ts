@@ -2,38 +2,38 @@ import log, { LogConfiguration } from "./main/log.ts";
 import build, { BuildConfiguration } from "./main/build.ts";
 import serve, { ServeConfiguration } from "./main/serve.ts";
 import {
+  runPiped,
   sequencePromises,
   withTemporaryFolder,
-  runPiped,
 } from "../src/help.ts";
 
-import { version, elmModule } from "../build/template.ts";
+import { elmModule, version } from "../build/template.ts";
 
 type Configuration =
   | {
-      type: "Log";
-      value: LogConfiguration;
-    }
+    type: "Log";
+    value: LogConfiguration;
+  }
   | {
-      type: "Build";
-      value: BuildConfiguration;
-    }
+    type: "Build";
+    value: BuildConfiguration;
+  }
   | {
-      type: "Serve";
-      value: ServeConfiguration;
-    }
+    type: "Serve";
+    value: ServeConfiguration;
+  }
   | {
-      type: "Batch";
-      value: Array<Configuration>;
-    }
+    type: "Batch";
+    value: Array<Configuration>;
+  }
   | {
-      type: "Sequence";
-      value: Array<Configuration>;
-    }
+    type: "Sequence";
+    value: Array<Configuration>;
+  }
   | {
-      type: "OneOf";
-      value: { [key: string]: Configuration | undefined };
-    };
+    type: "OneOf";
+    value: { [key: string]: Configuration | undefined };
+  };
 
 export type DevelopmentConfiguration = {
   packageModuleSource: string;
@@ -41,46 +41,45 @@ export type DevelopmentConfiguration = {
 
 export default async function (
   args: Array<string>,
-  devConfig?: DevelopmentConfiguration
+  devConfig?: DevelopmentConfiguration,
 ) {
   const config = await withTemporaryFolder(
     { prefix: "develm" },
-    toReadConfiguration(devConfig)
+    toReadConfiguration(devConfig),
   );
-
   await toRunConfiguration(args)(config);
 }
-
 // Configuration
 function toReadConfiguration(devConfig?: DevelopmentConfiguration) {
+  const moduleFileName = "Main.elm";
+  const compiledFileName = "main.js";
+  const configFileName = "Dev.elm";
   return async (tempDirPath: string): Promise<Configuration> => {
-    const moduleFileName = "Main.elm";
-    const compiledFileName = "main.js";
     const configFilePath = await Promise.any<string>(
       JSON.parse(await Deno.readTextFile("elm.json"))["source-directories"].map(
         async (srcDir: string) => {
-          const configFilePath = `${srcDir}/Dev.elm`;
+          const configFilePath = `${srcDir}/${configFileName}`;
           const { isFile } = await Deno.lstat(configFilePath);
           if (isFile) {
             return configFilePath;
           }
-        }
-      )
+        },
+      ),
     );
     await Deno.writeTextFile(`${tempDirPath}/${moduleFileName}`, elmModule);
     await Deno.writeTextFile(
       `${tempDirPath}/elm.json`,
-      JSON.stringify(toElmJson(devConfig))
+      JSON.stringify(toElmJson(devConfig)),
     );
     await Deno.writeTextFile(
-      `${tempDirPath}/Dev.elm`,
-      await Deno.readTextFile(configFilePath)
+      `${tempDirPath}/${configFileName}`,
+      await Deno.readTextFile(configFilePath),
     );
 
     if (devConfig) {
       await Deno.writeTextFile(
         `${tempDirPath}/DevElm.elm`,
-        devConfig.packageModuleSource
+        devConfig.packageModuleSource,
       );
     }
     await runPiped(
@@ -91,11 +90,11 @@ function toReadConfiguration(devConfig?: DevelopmentConfiguration) {
         `--output=${compiledFileName}`,
         moduleFileName,
       ],
-      tempDirPath
+      tempDirPath,
     );
 
     const compiled = await Deno.readTextFile(
-      `${tempDirPath}/${compiledFileName}`
+      `${tempDirPath}/${compiledFileName}`,
     );
     eval(compiled.replace("(this)", "(globalThis)"));
     return await new Promise((resolve) =>
@@ -122,19 +121,18 @@ function toRunConfiguration(args: Array<string>) {
       case "Sequence":
         await sequencePromises(
           config.value.map((config) => () => toRunConfiguration(args)(config)),
-          undefined
+          undefined,
         );
         break;
       case "OneOf":
         const configAtKey = config.value[args[0]];
-        if (configAtKey === undefined)
-          return console.log(
-            `I didn't recognize "${
-              args[0]
-            }". Did you mean one of these?: ${Object.keys(config.value)
+        if (configAtKey === undefined) {
+          throw `I didn't recognize "${args[0]}". Did you mean one of these?: ${
+            Object.keys(config.value)
               .map((str) => `\n - ${str}`)
-              .join("")}`
-          );
+              .join("")
+          }`;
+        }
         await toRunConfiguration(args.slice(1))(configAtKey);
         break;
 

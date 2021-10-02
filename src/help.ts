@@ -1,13 +1,13 @@
 export function sequencePromises<T>(
   promises: Array<(prev: T) => Promise<T>>,
-  init: T
+  init: T,
 ): Promise<T> {
   return promises.reduce((prev, cur) => prev.then(cur), Promise.resolve(init));
 }
 
 export async function withTemporaryFolder<output>(
   options: Deno.MakeTempOptions,
-  callback: (tempDir: string) => Promise<output>
+  callback: (tempDir: string) => Promise<output>,
 ): Promise<output> {
   async function removeTempDir() {
     await Deno.remove(tempDir, { recursive: true });
@@ -23,7 +23,7 @@ export async function withTemporaryFolder<output>(
 
 export async function runPiped(
   cmd: Array<string>,
-  cwd?: string
+  cwd?: string,
 ): Promise<string> {
   const process = Deno.run({
     cmd,
