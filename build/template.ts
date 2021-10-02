@@ -1,5 +1,5 @@
-export const version : [number,number,number] = [4,0,1]
-export const elmModule : string = `port module Main exposing (main)
+export const version: [number, number, number] = [4, 0, 1];
+export const elmModule: string = `port module Main exposing (main)
 
 import Dev
 import DevElm
@@ -16,5 +16,4 @@ main =
         , update = always (always ( (), Cmd.none ))
         , subscriptions = always Sub.none
         }
-`
-  
+`;

@@ -1,6 +1,6 @@
 import "https://cdn.jsdelivr.net/npm/terser@5.7.0/dist/bundle.min.js";
 
-import { withTemporaryFolder, runPiped } from "../help.ts";
+import { runPiped, withTemporaryFolder } from "../help.ts";
 
 export type BuildConfiguration = {
   moduleName: string;
@@ -15,13 +15,13 @@ export default async function (config: BuildConfiguration): Promise<void> {
       async (srcDir: string) => {
         const moduleFilePath = `${srcDir}/${config.moduleName}.elm`;
         const { isFile } = await Deno.lstat(
-          `${srcDir}/${config.moduleName}.elm`
+          `${srcDir}/${config.moduleName}.elm`,
         );
         if (isFile) {
           return moduleFilePath;
         }
-      }
-    )
+      },
+    ),
   );
   const compiledFileName = "main.js";
   const cmd = ["elm", "make"];

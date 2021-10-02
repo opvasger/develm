@@ -4,7 +4,7 @@ export type LogConfiguration =
 
 export default function (
   version: [number, number, number],
-  config: LogConfiguration
+  config: LogConfiguration,
 ) {
   switch (config.type) {
     case "Text":
