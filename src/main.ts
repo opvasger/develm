@@ -1,6 +1,7 @@
 import log, { LogConfiguration } from "./main/log.ts";
 import build, { BuildConfiguration } from "./main/build.ts";
 import serve, { ServeConfiguration } from "./main/serve.ts";
+import test, { TestConfiguration } from "./main/test.ts";
 import {
   runPiped,
   sequencePromises,
@@ -10,6 +11,18 @@ import {
 import { elmModule, version } from "../build/template.ts";
 
 type Configuration =
+  | {
+    type: "Batch";
+    value: Array<Configuration>;
+  }
+  | {
+    type: "Sequence";
+    value: Array<Configuration>;
+  }
+  | {
+    type: "OneOf";
+    value: { [key: string]: Configuration | undefined };
+  }
   | {
     type: "Log";
     value: LogConfiguration;
@@ -22,18 +35,7 @@ type Configuration =
     type: "Serve";
     value: ServeConfiguration;
   }
-  | {
-    type: "Batch";
-    value: Array<Configuration>;
-  }
-  | {
-    type: "Sequence";
-    value: Array<Configuration>;
-  }
-  | {
-    type: "OneOf";
-    value: { [key: string]: Configuration | undefined };
-  };
+  | { type: "Test"; value: TestConfiguration };
 
 export type DevelopmentConfiguration = {
   packageModuleSource: string;
@@ -106,15 +108,6 @@ function toReadConfiguration(devConfig?: DevelopmentConfiguration) {
 function toRunConfiguration(args: Array<string>) {
   return async (config: Configuration): Promise<void> => {
     switch (config.type) {
-      case "Log":
-        log(version, config.value);
-        break;
-      case "Build":
-        await build(config.value);
-        break;
-      case "Serve":
-        await serve(config.value);
-        break;
       case "Batch":
         await Promise.all(config.value.map(toRunConfiguration(args)));
         break;
@@ -134,6 +127,20 @@ function toRunConfiguration(args: Array<string>) {
           }`;
         }
         await toRunConfiguration(args.slice(1))(configAtKey);
+        break;
+
+      case "Log":
+        log(version, config.value);
+        break;
+      case "Build":
+        await build(config.value);
+        break;
+      case "Serve":
+        await serve(config.value);
+        break;
+
+      case "Test":
+        await test(config.value);
         break;
 
       default:

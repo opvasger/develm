@@ -3,6 +3,7 @@ module DevElm exposing
     , LogConfiguration(..)
     , BuildConfiguration, Format(..), Mode(..), defaultBuild
     , ServeConfiguration, defaultServe
+    , TestConfiguration, defaultTest
     , encodeConfiguration
     )
 
@@ -15,6 +16,8 @@ module DevElm exposing
 @docs BuildConfiguration, Format, Mode, defaultBuild
 
 @docs ServeConfiguration, defaultServe
+
+@docs TestConfiguration, defaultTest
 
 
 ## Internals
@@ -40,6 +43,7 @@ type Configuration
     = Log LogConfiguration
     | Build BuildConfiguration
     | Serve ServeConfiguration
+    | Test TestConfiguration
     | Batch (List Configuration)
     | Sequence (List Configuration)
     | OneOf (List ( String, Configuration ))
@@ -52,6 +56,15 @@ encodeConfiguration config =
     let
         ( type_, value ) =
             case config of
+                Batch configs ->
+                    ( "Batch", Json.Encode.list encodeConfiguration configs )
+
+                Sequence configs ->
+                    ( "Sequence", Json.Encode.list encodeConfiguration configs )
+
+                OneOf pairs ->
+                    ( "OneOf", Json.Encode.dict identity encodeConfiguration (Dict.fromList pairs) )
+
                 Log logConfig ->
                     ( "Log", encodeLogConfiguration logConfig )
 
@@ -61,14 +74,8 @@ encodeConfiguration config =
                 Serve serveConfig ->
                     ( "Serve", encodeServeConfiguration serveConfig )
 
-                Batch configs ->
-                    ( "Batch", Json.Encode.list encodeConfiguration configs )
-
-                Sequence configs ->
-                    ( "Sequence", Json.Encode.list encodeConfiguration configs )
-
-                OneOf pairs ->
-                    ( "OneOf", Json.Encode.dict identity encodeConfiguration (Dict.fromList pairs) )
+                Test testConfig ->
+                    ( "Test", encodeTestConfiguration testConfig )
     in
     Json.Encode.object
         [ ( "type", Json.Encode.string type_ )
@@ -193,7 +200,7 @@ encodeMode mode =
 -- Serve
 
 
-{-| Configure DevElm to build an elm program.
+{-| Configure DevElm to serve an elm program over HTTP.
 -}
 type alias ServeConfiguration =
     { moduleName : String
@@ -243,3 +250,32 @@ encodeServeConfiguration { moduleName, hostname, port_, mode, outputPath, docume
         , ( "contentTypes", Json.Encode.dict identity Json.Encode.string contentTypes )
         , ( "headers", Json.Encode.dict identity Json.Encode.string headers )
         ]
+
+
+
+-- Test
+
+
+{-| Configure DevElm to test Elm functions.
+-}
+type alias TestConfiguration =
+    { seed : Maybe Int
+    , fuzz : Int
+    }
+
+
+encodeTestConfiguration : TestConfiguration -> Json.Encode.Value
+encodeTestConfiguration { seed, fuzz } =
+    Json.Encode.object
+        [ ( "seed", Maybe.withDefault Json.Encode.null (Maybe.map Json.Encode.int seed) )
+        , ( "fuzz", Json.Encode.int fuzz )
+        ]
+
+
+{-| The default-configuration for testing Elm functions.
+-}
+defaultTest : TestConfiguration
+defaultTest =
+    { seed = Nothing
+    , fuzz = 100
+    }
