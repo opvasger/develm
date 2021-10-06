@@ -34,6 +34,9 @@ export default async function (flags: TestFlags) {
         `${tempDirPath}/runTest.js`,
       );
       let scope: any = {};
+      flags.seed = flags.seed !== null
+        ? flags.seed
+        : Math.floor(Math.random() * 0xFFFFFFFF);
       eval(compiled.replace("(this)", "(scope)"));
       return new Promise((resolve) =>
         scope.Elm.RunTest.init({ flags: flags }).ports.output.subscribe(

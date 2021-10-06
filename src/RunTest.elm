@@ -11,6 +11,8 @@ import Test.Runner.Failure
 type alias Output =
     { message : String
     , exitCode : Int
+    , passCount : Int
+    , failCount : Int
     }
 
 
@@ -44,6 +46,8 @@ update ( flags, seed ) =
                 runners
                 { exitCode = 0
                 , message = ""
+                , passCount = 0
+                , failCount = 0
                 }
 
         Test.Runner.Only runners ->
@@ -51,6 +55,8 @@ update ( flags, seed ) =
                 runners
                 { exitCode = 1
                 , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.only" ++ "\n"
+                , passCount = 0
+                , failCount = 0
                 }
 
         Test.Runner.Skipping runners ->
@@ -58,50 +64,92 @@ update ( flags, seed ) =
                 runners
                 { exitCode = 1
                 , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.skip" ++ "\n"
+                , passCount = 0
+                , failCount = 0
                 }
 
         Test.Runner.Invalid error ->
             output
                 { exitCode = 1
                 , message = error
+                , passCount = 0
+                , failCount = 0
                 }
 
 
 run : DevElm.TestFlags -> List Test.Runner.Runner -> Output -> Cmd msg
 run flags runners initOutput =
     let
-        finalOutput =
+        outputInfo =
             List.foldl foldRun initOutput runners
     in
     output
-        { finalOutput
+        { outputInfo
             | message =
                 "\n"
-                    ++ finalOutput.message
-                    ++ (case finalOutput.exitCode of
+                    ++ outputInfo.message
+                    ++ (case outputInfo.failCount of
                             0 ->
                                 ansiGreen "✓"
 
                             _ ->
                                 ansiRed "✗"
                        )
-                    ++ " "
-                    ++ flags.moduleName
-                    ++ "."
-                    ++ flags.testName
-                    ++ ""
+                    ++ (if outputInfo.failCount == 0 then
+                            " passed "
+                                ++ (if outputInfo.passCount > 2 then
+                                        "all "
+
+                                    else
+                                        ""
+                                   )
+                                ++ ansiGreen
+                                    (String.fromInt outputInfo.passCount
+                                        ++ " test"
+                                        ++ (if outputInfo.passCount /= 1 then
+                                                "s"
+
+                                            else
+                                                ""
+                                           )
+                                    )
+
+                        else
+                            " failed "
+                                ++ ansiRed
+                                    (String.fromInt outputInfo.failCount
+                                        ++ " test"
+                                        ++ (if outputInfo.failCount /= 1 then
+                                                "s"
+
+                                            else
+                                                ""
+                                           )
+                                    )
+                       )
+                    ++ " in "
+                    ++ (flags.moduleName ++ "." ++ ansiBlue flags.testName)
+                    ++ Maybe.withDefault ""
+                        (Maybe.map
+                            (\seed ->
+                                "\n↻ seeded with "
+                                    ++ ansiYellow (String.fromInt seed)
+                            )
+                            flags.seed
+                        )
         }
 
 
 foldRun : Test.Runner.Runner -> Output -> Output
-foldRun runner output_ =
+foldRun runner outputPart =
     case List.filterMap Test.Runner.getFailureReason (runner.run ()) of
         [] ->
-            output_
+            { outputPart | passCount = outputPart.passCount + 1 }
 
         failures ->
-            { output_
+            { outputPart
                 | exitCode = 1
+                , failCount = outputPart.failCount + 1
                 , message =
                     List.foldl
                         (\failure message ->
@@ -113,13 +161,13 @@ foldRun runner output_ =
                         (String.join "\n"
                             (Test.Runner.formatLabels
                                 ((++) "↓ ")
-                                ((++) (ansiRed "✗ "))
+                                ((++) (ansiRed "✗ ") << ansiBlue)
                                 runner.labels
                             )
                         )
                         failures
                         ++ "\n\n"
-                        ++ output_.message
+                        ++ outputPart.message
             }
 
 
@@ -140,6 +188,16 @@ ansiRed =
 ansiGreen : String -> String
 ansiGreen =
     ansi 32
+
+
+ansiYellow : String -> String
+ansiYellow =
+    ansi 33
+
+
+ansiBlue : String -> String
+ansiBlue =
+    ansi 34
 
 
 ansi : Int -> String -> String
