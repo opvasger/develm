@@ -7,29 +7,28 @@ import {
   withTemporaryFolder,
 } from "./help.ts";
 
-export type BuildConfiguration = {
+export type BuildFlags = {
   moduleName: string;
   outputPath: string | null;
   format: "iife" | "esm";
   mode: "develop" | "debug" | "optimize";
 };
 
-export default async function (config: BuildConfiguration): Promise<string> {
-  const moduleFilePath = await toModuleFilePath(config.moduleName);
+export default async function (flags: BuildFlags): Promise<void> {
+  const moduleFilePath = await toModuleFilePath(flags.moduleName);
   const cmd = ["elm", "make"];
-  if (config.mode !== "develop") cmd.push(`--${config.mode}`);
+  if (flags.mode !== "develop") cmd.push(`--${flags.mode}`);
   return withTemporaryFolder({}, async (tempDir) => {
     const tempOutputPath = `${tempDir}/main.js`;
     cmd.push(`--output=${tempOutputPath}`, moduleFilePath);
     await runPiped(cmd);
     let output = await Deno.readTextFile(tempOutputPath);
-    if (config.format === "esm") output = exportCompiledSource(output);
-    if (config.mode === "optimize") output = await minifyCompiledSource(output);
-    if (config.outputPath) {
-      await ensureDirectoriesForFile(config.outputPath);
-      await Deno.writeTextFile(config.outputPath, output);
+    if (flags.format === "esm") output = exportCompiledSource(output);
+    if (flags.mode === "optimize") output = await minifyCompiledSource(output);
+    if (flags.outputPath) {
+      await ensureDirectoriesForFile(flags.outputPath);
+      await Deno.writeTextFile(flags.outputPath, output);
     }
-    return output;
   });
 }
 

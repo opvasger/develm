@@ -17,7 +17,7 @@ type alias Output =
 port output : Output -> Cmd msg
 
 
-main : Program DevElm.TestConfiguration () ( DevElm.TestConfiguration, Random.Seed )
+main : Program DevElm.TestFlags () ( DevElm.TestFlags, Random.Seed )
 main =
     Platform.worker
         { init = \flags -> ( (), init flags )
@@ -26,7 +26,7 @@ main =
         }
 
 
-init : DevElm.TestConfiguration -> Cmd ( DevElm.TestConfiguration, Random.Seed )
+init : DevElm.TestFlags -> Cmd ( DevElm.TestFlags, Random.Seed )
 init flags =
     case flags.seed of
         Just n ->
@@ -36,25 +36,25 @@ init flags =
             Random.generate (Tuple.pair flags) Random.independentSeed
 
 
-update : ( DevElm.TestConfiguration, Random.Seed ) -> Cmd msg
-update ( config, seed ) =
-    case Test.Runner.fromTest config.fuzz seed suite of
+update : ( DevElm.TestFlags, Random.Seed ) -> Cmd msg
+update ( flags, seed ) =
+    case Test.Runner.fromTest flags.fuzz seed suite of
         Test.Runner.Plain runners ->
-            run config
+            run flags
                 runners
                 { exitCode = Just 0
                 , message = ""
                 }
 
         Test.Runner.Only runners ->
-            run config
+            run flags
                 runners
                 { exitCode = Just 1
                 , message = "\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.only"
                 }
 
         Test.Runner.Skipping runners ->
-            run config
+            run flags
                 runners
                 { exitCode = Just 1
                 , message = "\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.skip"
@@ -67,8 +67,8 @@ update ( config, seed ) =
                 }
 
 
-run : DevElm.TestConfiguration -> List Test.Runner.Runner -> Output -> Cmd msg
-run config runners initOutput =
+run : DevElm.TestFlags -> List Test.Runner.Runner -> Output -> Cmd msg
+run flags runners initOutput =
     let
         finalOutput =
             List.foldl foldRun initOutput runners
@@ -85,9 +85,9 @@ run config runners initOutput =
                                 ansiRed "✗"
                        )
                     ++ " "
-                    ++ config.moduleName
+                    ++ flags.moduleName
                     ++ "."
-                    ++ config.testName
+                    ++ flags.testName
                     ++ ""
         }
 

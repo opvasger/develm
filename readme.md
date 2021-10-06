@@ -12,17 +12,20 @@ Documentation is available on the [elm-package](https://package.elm-lang.org/pac
 
 ## Usage
 
-1. run `elm install opvasger/develm` to install the configuration-package.
-2. Make a `Dev.elm` in the same directory as the projects `elm.json`. It should import `DevElm` and expose a `config` of type `Configuration` - for example like this:
+
+
+
+1. run `elm install opvasger/develm` to install the flags-package.
+2. create a `Dev.elm` module in a source-directory. It should import `DevElm` and expose a `flags`-definition of type `DevElm.Flags` - for example like this:
 
 ```elm
-module Dev exposing (config)
+module Dev exposing (flags)
 
 import DevElm exposing (defaultBuild)
 
-config : DevElm.Configuration
-config =
+flags : DevElm.Flags
+flags =
     DevElm.Build { defaultBuild | mode = DevElm.Optimize }
 ```
 
-3. run `develm` or `deno run https://deno.land/x/develm/mod.ts` to perform configured task(s).
+3. run `develm` or `deno run https://deno.land/x/develm/mod.ts` to perform flagged task(s).

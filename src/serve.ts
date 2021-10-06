@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.106.0/http/mod.ts";
 
 import build from "./build.ts";
 
-export type ServeConfiguration = {
+export type ServeFlags = {
   moduleName: string;
   hostname: string;
   port: number;
@@ -13,16 +13,16 @@ export type ServeConfiguration = {
   contentTypes: { [key: string]: string };
 };
 
-export default async function (config: ServeConfiguration) {
-  for await (const request of serve(config)) {
+export default async function (flags: ServeFlags) {
+  for await (const request of serve(flags)) {
     let error = null;
     if (request.url === "/") {
-      if (config.documentPath) request.url = `/${config.documentPath}`;
+      if (flags.documentPath) request.url = `/${flags.documentPath}`;
       error = await build({
         format: "iife",
-        mode: config.mode,
-        moduleName: config.moduleName,
-        outputPath: config.outputPath,
+        mode: flags.mode,
+        moduleName: flags.moduleName,
+        outputPath: flags.outputPath,
       }).catch((error) => error);
     }
 
@@ -31,7 +31,7 @@ export default async function (config: ServeConfiguration) {
         status: 400,
         body: toErrorHtml(error),
         headers: new Headers({
-          ...config.headers,
+          ...flags.headers,
           "content-type": "text/html",
         }),
       }
@@ -40,28 +40,28 @@ export default async function (config: ServeConfiguration) {
           status: 200,
           body,
           headers: new Headers({
-            ...config.headers,
-            "content-type": config.contentTypes[
-              Object.keys(config.contentTypes).find((
+            ...flags.headers,
+            "content-type": flags.contentTypes[
+              Object.keys(flags.contentTypes).find((
                 extension,
               ) => request.url.endsWith(`.${extension}`)) || ""
             ],
           }),
         }))
         .catch((error) =>
-          request.url === "/" && config.documentPath === null
+          request.url === "/" && flags.documentPath === null
             ? {
               status: 200,
-              body: toProgramHtml(config.outputPath, config.moduleName),
+              body: toProgramHtml(flags.outputPath, flags.moduleName),
               headers: new Headers({
-                ...config.headers,
+                ...flags.headers,
                 "content-type": "text/html",
               }),
             }
             : {
               status: 404,
               body: JSON.stringify(error),
-              headers: new Headers(config.headers),
+              headers: new Headers(flags.headers),
             }
         );
 

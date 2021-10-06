@@ -2,23 +2,23 @@ import { runPiped, toModuleFilePath, withTemporaryFolder } from "./help.ts";
 
 import { testModule } from "../build/template.ts";
 
-export type TestConfiguration = {
+export type TestFlags = {
   seed: number | null;
   fuzz: number;
   moduleName: string;
   testName: string;
 };
 
-export default async function (config: TestConfiguration) {
+export default async function (flags: TestFlags) {
   const exitCode = await withTemporaryFolder<number>(
     {},
     async (tempDirPath) => {
       await Deno.writeTextFile(
         `${tempDirPath}/RunTest.elm`,
-        testModule.replace("import", `import ${config.moduleName}\nimport`)
+        testModule.replace("import", `import ${flags.moduleName}\nimport`)
           .replace(
             "suite",
-            `${config.moduleName}.${config.testName}`,
+            `${flags.moduleName}.${flags.testName}`,
           ),
       );
       await runPiped(
@@ -36,7 +36,7 @@ export default async function (config: TestConfiguration) {
       let scope: any = {};
       eval(compiled.replace("(this)", "(scope)"));
       return new Promise((resolve) =>
-        scope.Elm.RunTest.init({ flags: config }).ports.output.subscribe(
+        scope.Elm.RunTest.init({ flags: flags }).ports.output.subscribe(
           (output: { message: String; exitCode: number | null }) => {
             console.log(output.message);
             if (typeof output.exitCode === "number") resolve(output.exitCode);
