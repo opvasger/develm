@@ -69,14 +69,14 @@ update ( flags, seed ) =
             run flags
                 runners
                 { exitCode = 1
-                , message = "\\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.only" ++ "\\n"
+                , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.only" ++ "\\n"
                 }
 
         Test.Runner.Skipping runners ->
             run flags
                 runners
                 { exitCode = 1
-                , message = "\\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.skip" ++ "\\n"
+                , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.skip" ++ "\\n"
                 }
 
         Test.Runner.Invalid error ->
@@ -95,7 +95,8 @@ run flags runners initOutput =
     output
         { finalOutput
             | message =
-                finalOutput.message
+                "\\n"
+                    ++ finalOutput.message
                     ++ (case finalOutput.exitCode of
                             0 ->
                                 ansiGreen "✓"
@@ -131,7 +132,7 @@ foldRun runner output_ =
                         (String.join "\\n"
                             (Test.Runner.formatLabels
                                 ((++) "↓ ")
-                                (ansiRed << (++) "✗ ")
+                                ((++) (ansiRed "✗ "))
                                 runner.labels
                             )
                         )
