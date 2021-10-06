@@ -1,14 +1,15 @@
-import log, { LogConfiguration } from "./main/log.ts";
-import build, { BuildConfiguration } from "./main/build.ts";
-import serve, { ServeConfiguration } from "./main/serve.ts";
-import test, { TestConfiguration } from "./main/test.ts";
+import log, { LogConfiguration } from "./log.ts";
+import build, { BuildConfiguration } from "./build.ts";
+import serve, { ServeConfiguration } from "./serve.ts";
+import test, { TestConfiguration } from "./test.ts";
 import {
   runPiped,
   sequencePromises,
+  toModuleFilePath,
   withTemporaryFolder,
-} from "../src/help.ts";
+} from "./help.ts";
 
-import { elmModule, version } from "../build/template.ts";
+import { mainModule, version } from "../build/template.ts";
 
 type Configuration =
   | {
@@ -52,31 +53,21 @@ export default async function (
   await toRunConfiguration(args)(config);
 }
 // Configuration
+
 function toReadConfiguration(devConfig?: DevelopmentConfiguration) {
-  const moduleFileName = "Main.elm";
-  const compiledFileName = "main.js";
-  const configFileName = "Dev.elm";
   return async (tempDirPath: string): Promise<Configuration> => {
-    const configFilePath = await Promise.any<string>(
-      JSON.parse(await Deno.readTextFile("elm.json"))["source-directories"].map(
-        async (srcDir: string) => {
-          const configFilePath = `${srcDir}/${configFileName}`;
-          const { isFile } = await Deno.lstat(configFilePath);
-          if (isFile) {
-            return configFilePath;
-          }
-        },
+    const configFilePath = await toModuleFilePath("Dev");
+    await Promise.all([
+      Deno.writeTextFile(`${tempDirPath}/RunMain.elm`, mainModule),
+      Deno.writeTextFile(
+        `${tempDirPath}/elm.json`,
+        JSON.stringify(toElmJson(devConfig)),
       ),
-    );
-    await Deno.writeTextFile(`${tempDirPath}/${moduleFileName}`, elmModule);
-    await Deno.writeTextFile(
-      `${tempDirPath}/elm.json`,
-      JSON.stringify(toElmJson(devConfig)),
-    );
-    await Deno.writeTextFile(
-      `${tempDirPath}/${configFileName}`,
-      await Deno.readTextFile(configFilePath),
-    );
+      Deno.writeTextFile(
+        `${tempDirPath}/Dev.elm`,
+        await Deno.readTextFile(configFilePath),
+      ),
+    ]);
 
     if (devConfig) {
       await Deno.writeTextFile(
@@ -88,19 +79,19 @@ function toReadConfiguration(devConfig?: DevelopmentConfiguration) {
       [
         "elm",
         "make",
-        "--optimize",
-        `--output=${compiledFileName}`,
-        moduleFileName,
+        `--output=runMain.js`,
+        "RunMain.elm",
       ],
       tempDirPath,
     );
 
     const compiled = await Deno.readTextFile(
-      `${tempDirPath}/${compiledFileName}`,
+      `${tempDirPath}/runMain.js`,
     );
-    eval(compiled.replace("(this)", "(globalThis)"));
+    let scope: any = {};
+    eval(compiled.replace("(this)", "(scope)"));
     return await new Promise((resolve) =>
-      (globalThis as any).Elm.Main.init().ports.output.subscribe(resolve)
+      scope.Elm.RunMain.init().ports.output.subscribe(resolve)
     );
   };
 }

@@ -1,4 +1,4 @@
-port module Main exposing (main)
+port module RunMain exposing (main)
 
 import Dev
 import DevElm

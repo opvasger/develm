@@ -1,23 +1,4 @@
-export const version : [number,number,number] = [4,0,1]
-  export const mainModule : string = `port module RunMain exposing (main)
-
-import Dev
-import DevElm
-import Json.Encode
-
-
-port output : Json.Encode.Value -> Cmd msg
-
-
-main : Program () () ()
-main =
-    Platform.worker
-        { init = always ( (), output (DevElm.encodeConfiguration Dev.config) )
-        , update = always (always ( (), Cmd.none ))
-        , subscriptions = always Sub.none
-        }
-`
-  export const testModule : string = `port module RunTest exposing (main)
+port module RunTest exposing (main)
 
 import DevElm
 import Expect
@@ -39,8 +20,8 @@ port output : Output -> Cmd msg
 main : Program DevElm.TestConfiguration () ( DevElm.TestConfiguration, Random.Seed )
 main =
     Platform.worker
-        { init = \\flags -> ( (), init flags )
-        , update = \\msg _ -> ( (), update msg )
+        { init = \flags -> ( (), init flags )
+        , update = \msg _ -> ( (), update msg )
         , subscriptions = always Sub.none
         }
 
@@ -69,14 +50,14 @@ update ( config, seed ) =
             run config
                 runners
                 { exitCode = Just 1
-                , message = "\\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.only"
+                , message = "\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.only"
                 }
 
         Test.Runner.Skipping runners ->
             run config
                 runners
                 { exitCode = Just 1
-                , message = "\\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.skip"
+                , message = "\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.skip"
                 }
 
         Test.Runner.Invalid error ->
@@ -122,13 +103,13 @@ foldRun runner output_ =
                 | exitCode = Just 1
                 , message =
                     List.foldl
-                        (\\failure message ->
+                        (\failure message ->
                             message
-                                ++ Maybe.withDefault "" (Maybe.map ((++) "\\n\\ngiven ") failure.given)
-                                ++ "\\n\\n"
+                                ++ Maybe.withDefault "" (Maybe.map ((++) "\n\ngiven ") failure.given)
+                                ++ "\n\n"
                                 ++ Test.Runner.Failure.format failure.description failure.reason
                         )
-                        (String.join "\\n"
+                        (String.join "\n"
                             (Test.Runner.formatLabels
                                 ((++) "↓ ")
                                 (ansiRed << (++) "✗ ")
@@ -136,14 +117,14 @@ foldRun runner output_ =
                             )
                         )
                         failures
-                        ++ "\\n\\n"
+                        ++ "\n\n"
                         ++ output_.message
             }
 
 
 suite : Test.Test
 suite =
-    Test.test "one is zero" (\\_ -> Expect.equal 1 0)
+    Test.test "one is zero" (\_ -> Expect.equal 1 0)
 
 
 
@@ -162,6 +143,4 @@ ansiGreen =
 
 ansi : Int -> String -> String
 ansi n text =
-    "\\u{001B}[" ++ String.fromInt n ++ "m" ++ text ++ "\\u{001B}[0m"
-`
-    
+    "\u{001B}[" ++ String.fromInt n ++ "m" ++ text ++ "\u{001B}[0m"

@@ -1,6 +1,11 @@
 import "https://cdn.jsdelivr.net/npm/terser@5.7.0/dist/bundle.min.js";
 
-import { runPiped, withTemporaryFolder } from "../help.ts";
+import {
+  ensureDirectoriesForFile,
+  runPiped,
+  toModuleFilePath,
+  withTemporaryFolder,
+} from "./help.ts";
 
 export type BuildConfiguration = {
   moduleName: string;
@@ -9,36 +14,22 @@ export type BuildConfiguration = {
   mode: "develop" | "debug" | "optimize";
 };
 
-export default async function (config: BuildConfiguration): Promise<void> {
-  const moduleFilePath = await Promise.any<string>(
-    JSON.parse(await Deno.readTextFile("elm.json"))["source-directories"].map(
-      async (srcDir: string) => {
-        const moduleFilePath = `${srcDir}/${config.moduleName}.elm`;
-        const { isFile } = await Deno.lstat(
-          `${srcDir}/${config.moduleName}.elm`,
-        );
-        if (isFile) {
-          return moduleFilePath;
-        }
-      },
-    ),
-  );
-  const compiledFileName = "main.js";
+export default async function (config: BuildConfiguration): Promise<string> {
+  const moduleFilePath = await toModuleFilePath(config.moduleName);
   const cmd = ["elm", "make"];
   if (config.mode !== "develop") cmd.push(`--${config.mode}`);
-  await withTemporaryFolder({}, async (tempDir) => {
-    const tempOutputPath = `${tempDir}/${compiledFileName}`;
+  return withTemporaryFolder({}, async (tempDir) => {
+    const tempOutputPath = `${tempDir}/main.js`;
     cmd.push(`--output=${tempOutputPath}`, moduleFilePath);
     await runPiped(cmd);
     let output = await Deno.readTextFile(tempOutputPath);
     if (config.format === "esm") output = exportCompiledSource(output);
     if (config.mode === "optimize") output = await minifyCompiledSource(output);
     if (config.outputPath) {
-      Deno.mkdir(config.outputPath.split("/").slice(0, -1).join("/"), {
-        recursive: true,
-      });
-      return await Deno.writeTextFile(config.outputPath, output);
+      await ensureDirectoriesForFile(config.outputPath);
+      await Deno.writeTextFile(config.outputPath, output);
     }
+    return output;
   });
 }
 

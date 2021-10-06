@@ -40,13 +40,13 @@ import Json.Encode
 
 -}
 type Configuration
-    = Log LogConfiguration
+    = Batch (List Configuration)
+    | Sequence (List Configuration)
+    | OneOf (List ( String, Configuration ))
+    | Log LogConfiguration
     | Build BuildConfiguration
     | Serve ServeConfiguration
     | Test TestConfiguration
-    | Batch (List Configuration)
-    | Sequence (List Configuration)
-    | OneOf (List ( String, Configuration ))
 
 
 {-| Encode a configuration as JSON.
@@ -261,14 +261,18 @@ encodeServeConfiguration { moduleName, hostname, port_, mode, outputPath, docume
 type alias TestConfiguration =
     { seed : Maybe Int
     , fuzz : Int
+    , moduleName : String
+    , testName : String
     }
 
 
 encodeTestConfiguration : TestConfiguration -> Json.Encode.Value
-encodeTestConfiguration { seed, fuzz } =
+encodeTestConfiguration { seed, fuzz, moduleName, testName } =
     Json.Encode.object
         [ ( "seed", Maybe.withDefault Json.Encode.null (Maybe.map Json.Encode.int seed) )
         , ( "fuzz", Json.Encode.int fuzz )
+        , ( "moduleName", Json.Encode.string moduleName )
+        , ( "testName", Json.Encode.string testName )
         ]
 
 
@@ -278,4 +282,6 @@ defaultTest : TestConfiguration
 defaultTest =
     { seed = Nothing
     , fuzz = 100
+    , moduleName = "Main"
+    , testName = "suite"
     }

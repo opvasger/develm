@@ -38,3 +38,26 @@ export async function runPiped(
   }
   return new TextDecoder().decode(await process.output());
 }
+
+export async function toModuleFilePath(moduleName: string): Promise<string> {
+  const relativeModulePath = moduleName.replaceAll(".", "/") + ".elm";
+  return Promise.any<string>(
+    JSON.parse(await Deno.readTextFile("elm.json"))["source-directories"].map(
+      async (srcDir: string) => {
+        const moduleFilePath = `${srcDir}/${relativeModulePath}`;
+        const { isFile } = await Deno.lstat(moduleFilePath);
+        if (isFile) {
+          return moduleFilePath;
+        }
+      },
+    ),
+  );
+}
+
+export async function ensureDirectoriesForFile(
+  filePath: string,
+): Promise<void> {
+  return Deno.mkdir(filePath.split("/").slice(0, -1).join("/"), {
+    recursive: true,
+  });
+}

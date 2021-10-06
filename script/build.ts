@@ -1,6 +1,7 @@
 import { gzip } from "https://deno.land/x/denoflate@1.2.1/mod.ts";
 
 import { runPiped, sequencePromises } from "../src/help.ts";
+import buildTemplate from "./template.ts";
 
 if (import.meta.main) {
   const buildFor: Array<Target> = [
@@ -12,21 +13,6 @@ if (import.meta.main) {
   await sequencePromises(
     buildFor.map((platform) => () => buildBinary(platform)),
     undefined,
-  );
-}
-
-export async function buildTemplate() {
-  console.log("\nbuilding template-module");
-  const elmModule = await Deno.readTextFile("template/Main.elm");
-  const version = JSON.parse(await Deno.readTextFile("elm.json"))
-    .version.split(".")
-    .map((n: string) => parseInt(n));
-
-  Deno.writeTextFile(
-    "build/template.ts",
-    `export const version : [number,number,number] = ${JSON.stringify(version)}
-export const elmModule : string = \`${elmModule}\`
-  `,
   );
 }
 
