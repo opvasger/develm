@@ -37,9 +37,9 @@ export default async function (flags: TestFlags) {
       eval(compiled.replace("(this)", "(scope)"));
       return new Promise((resolve) =>
         scope.Elm.RunTest.init({ flags: flags }).ports.output.subscribe(
-          (output: { message: String; exitCode: number | null }) => {
+          (output: { message: String; exitCode: number }) => {
             console.log(output.message);
-            if (typeof output.exitCode === "number") resolve(output.exitCode);
+            resolve(output.exitCode);
           },
         )
       );

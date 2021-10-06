@@ -29,7 +29,7 @@ import Test.Runner.Failure
 
 type alias Output =
     { message : String
-    , exitCode : Maybe Int
+    , exitCode : Int
     }
 
 
@@ -61,27 +61,27 @@ update ( flags, seed ) =
         Test.Runner.Plain runners ->
             run flags
                 runners
-                { exitCode = Just 0
+                { exitCode = 0
                 , message = ""
                 }
 
         Test.Runner.Only runners ->
             run flags
                 runners
-                { exitCode = Just 1
-                , message = "\\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.only"
+                { exitCode = 1
+                , message = "\\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.only" ++ "\\n"
                 }
 
         Test.Runner.Skipping runners ->
             run flags
                 runners
-                { exitCode = Just 1
-                , message = "\\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.skip"
+                { exitCode = 1
+                , message = "\\n" ++ ansiRed "✗" ++ " ran with " ++ ansiRed "Test.skip" ++ "\\n"
                 }
 
         Test.Runner.Invalid error ->
             output
-                { exitCode = Just 1
+                { exitCode = 1
                 , message = error
                 }
 
@@ -97,7 +97,7 @@ run flags runners initOutput =
             | message =
                 finalOutput.message
                     ++ (case finalOutput.exitCode of
-                            Just 0 ->
+                            0 ->
                                 ansiGreen "✓"
 
                             _ ->
@@ -119,7 +119,7 @@ foldRun runner output_ =
 
         failures ->
             { output_
-                | exitCode = Just 1
+                | exitCode = 1
                 , message =
                     List.foldl
                         (\\failure message ->
