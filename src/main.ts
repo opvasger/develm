@@ -1,154 +1,152 @@
-import log, { LogConfiguration } from "./main/log.ts";
-import build, { BuildConfiguration } from "./main/build.ts";
-import serve, { ServeConfiguration } from "./main/serve.ts";
+import log, { LogFlags } from "./log.ts";
+import build, { BuildFlags } from "./build.ts";
+import serve, { ServeFlags } from "./serve.ts";
+import test, { TestFlags } from "./test.ts";
 import {
   runPiped,
   sequencePromises,
+  toModuleFilePath,
   withTemporaryFolder,
-} from "../src/help.ts";
+} from "./help.ts";
 
-import { elmModule, version } from "../build/template.ts";
+import { mainModule, version } from "../build/template.ts";
 
-type Configuration =
-  | {
-    type: "Log";
-    value: LogConfiguration;
-  }
-  | {
-    type: "Build";
-    value: BuildConfiguration;
-  }
-  | {
-    type: "Serve";
-    value: ServeConfiguration;
-  }
+type Flags =
   | {
     type: "Batch";
-    value: Array<Configuration>;
+    value: Array<Flags>;
   }
   | {
     type: "Sequence";
-    value: Array<Configuration>;
+    value: Array<Flags>;
   }
   | {
     type: "OneOf";
-    value: { [key: string]: Configuration | undefined };
-  };
+    value: { [key: string]: Flags | undefined };
+  }
+  | {
+    type: "Log";
+    value: LogFlags;
+  }
+  | {
+    type: "Build";
+    value: BuildFlags;
+  }
+  | {
+    type: "Serve";
+    value: ServeFlags;
+  }
+  | { type: "Test"; value: TestFlags };
 
-export type DevelopmentConfiguration = {
+export type DevelopmentFlags = {
   packageModuleSource: string;
 };
 
 export default async function (
   args: Array<string>,
-  devConfig?: DevelopmentConfiguration,
+  devFlags?: DevelopmentFlags,
 ) {
-  const config = await withTemporaryFolder(
+  const flags = await withTemporaryFolder(
     { prefix: "develm" },
-    toReadConfiguration(devConfig),
+    toReadFlags(devFlags),
   );
-  await toRunConfiguration(args)(config);
+  await toRunFlags(args)(flags);
 }
-// Configuration
-function toReadConfiguration(devConfig?: DevelopmentConfiguration) {
-  const moduleFileName = "Main.elm";
-  const compiledFileName = "main.js";
-  const configFileName = "Dev.elm";
-  return async (tempDirPath: string): Promise<Configuration> => {
-    const configFilePath = await Promise.any<string>(
-      JSON.parse(await Deno.readTextFile("elm.json"))["source-directories"].map(
-        async (srcDir: string) => {
-          const configFilePath = `${srcDir}/${configFileName}`;
-          const { isFile } = await Deno.lstat(configFilePath);
-          if (isFile) {
-            return configFilePath;
-          }
-        },
-      ),
-    );
-    await Deno.writeTextFile(`${tempDirPath}/${moduleFileName}`, elmModule);
-    await Deno.writeTextFile(
-      `${tempDirPath}/elm.json`,
-      JSON.stringify(toElmJson(devConfig)),
-    );
-    await Deno.writeTextFile(
-      `${tempDirPath}/${configFileName}`,
-      await Deno.readTextFile(configFilePath),
-    );
+// Flags
 
-    if (devConfig) {
+function toReadFlags(devFlags?: DevelopmentFlags) {
+  return async (tempDirPath: string): Promise<Flags> => {
+    const flagsFilePath = await toModuleFilePath("Dev");
+    await Promise.all([
+      Deno.writeTextFile(`${tempDirPath}/RunMain.elm`, mainModule),
+      Deno.writeTextFile(
+        `${tempDirPath}/elm.json`,
+        JSON.stringify(toElmJson(devFlags)),
+      ),
+      Deno.writeTextFile(
+        `${tempDirPath}/Dev.elm`,
+        await Deno.readTextFile(flagsFilePath),
+      ),
+    ]);
+
+    if (devFlags) {
       await Deno.writeTextFile(
         `${tempDirPath}/DevElm.elm`,
-        devConfig.packageModuleSource,
+        devFlags.packageModuleSource,
       );
     }
     await runPiped(
       [
         "elm",
         "make",
-        "--optimize",
-        `--output=${compiledFileName}`,
-        moduleFileName,
+        `--output=runMain.js`,
+        "RunMain.elm",
       ],
       tempDirPath,
     );
 
     const compiled = await Deno.readTextFile(
-      `${tempDirPath}/${compiledFileName}`,
+      `${tempDirPath}/runMain.js`,
     );
-    eval(compiled.replace("(this)", "(globalThis)"));
+    let scope: any = {};
+    eval(compiled.replace("(this)", "(scope)"));
     return await new Promise((resolve) =>
-      (globalThis as any).Elm.Main.init().ports.output.subscribe(resolve)
+      scope.Elm.RunMain.init().ports.output.subscribe(resolve)
     );
   };
 }
 
-function toRunConfiguration(args: Array<string>) {
-  return async (config: Configuration): Promise<void> => {
-    switch (config.type) {
-      case "Log":
-        log(version, config.value);
-        break;
-      case "Build":
-        await build(config.value);
-        break;
-      case "Serve":
-        await serve(config.value);
-        break;
+function toRunFlags(args: Array<string>) {
+  return async (flags: Flags): Promise<void> => {
+    switch (flags.type) {
       case "Batch":
-        await Promise.all(config.value.map(toRunConfiguration(args)));
+        await Promise.all(flags.value.map(toRunFlags(args)));
         break;
       case "Sequence":
         await sequencePromises(
-          config.value.map((config) => () => toRunConfiguration(args)(config)),
+          flags.value.map((flags) => () => toRunFlags(args)(flags)),
           undefined,
         );
         break;
       case "OneOf":
-        const configAtKey = config.value[args[0]];
-        if (configAtKey === undefined) {
+        const flagsAtKey = flags.value[args[0]];
+        if (flagsAtKey === undefined) {
           throw `I didn't recognize "${args[0]}". Did you mean one of these?: ${
-            Object.keys(config.value)
+            Object.keys(flags.value)
               .map((str) => `\n - ${str}`)
               .join("")
           }`;
         }
-        await toRunConfiguration(args.slice(1))(configAtKey);
+        await toRunFlags(args.slice(1))(flagsAtKey);
+        break;
+
+      case "Log":
+        log(version, flags.value);
+        break;
+      case "Build":
+        await build(flags.value);
+        break;
+      case "Serve":
+        await serve(flags.value);
+        break;
+
+      case "Test":
+        await test(flags.value);
         break;
 
       default:
-        throw `unrecognized configuration: ${JSON.stringify(config)}`;
+        throw `unrecognized flags: ${JSON.stringify(flags)}`;
     }
   };
 }
 
-function toElmJson(devConfig?: DevelopmentConfiguration) {
+function toElmJson(devFlags?: DevelopmentFlags) {
   const direct: { [key: string]: string } = {
     "elm/core": "1.0.5",
     "elm/json": "1.1.3",
   };
 
-  if (!devConfig) {
+  if (!devFlags) {
     direct["opvasger/develm"] = version.join(".");
   }
   return {

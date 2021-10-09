@@ -1,23 +1,4 @@
-export const version : [number,number,number] = [5,0,0]
-  export const mainModule : string = `port module RunMain exposing (main)
-
-import Dev
-import DevElm
-import Json.Encode
-
-
-port output : Json.Encode.Value -> Cmd msg
-
-
-main : Program () () ()
-main =
-    Platform.worker
-        { init = always ( (), output (DevElm.encodeFlags Dev.flags) )
-        , update = always (always ( (), Cmd.none ))
-        , subscriptions = always Sub.none
-        }
-`
-  export const testModule : string = `port module RunTest exposing (main)
+port module RunTest exposing (main)
 
 import DevElm
 import Expect
@@ -50,8 +31,8 @@ port output : Output -> Cmd msg
 main : Program DevElm.TestFlags () ( DevElm.TestFlags, Random.Seed )
 main =
     Platform.worker
-        { init = \\flags -> ( (), init flags )
-        , update = \\msg _ -> ( (), update msg )
+        { init = \flags -> ( (), init flags )
+        , update = \msg _ -> ( (), update msg )
         , subscriptions = always Sub.none
         }
 
@@ -77,7 +58,7 @@ update ( flags, seed ) =
                 runners
                 { emptyOutput
                     | exitCode = 1
-                    , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.only" ++ "\\n"
+                    , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.only" ++ "\n"
                 }
 
         Test.Runner.Skipping runners ->
@@ -85,7 +66,7 @@ update ( flags, seed ) =
                 runners
                 { emptyOutput
                     | exitCode = 1
-                    , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.skip" ++ "\\n"
+                    , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.skip" ++ "\n"
                 }
 
         Test.Runner.Invalid error ->
@@ -105,7 +86,7 @@ run flags runners initOutput =
     output
         { outputInfo
             | message =
-                "\\n"
+                "\n"
                     ++ outputInfo.message
                     ++ (case outputInfo.failCount of
                             0 ->
@@ -150,8 +131,8 @@ run flags runners initOutput =
                     ++ (flags.moduleName ++ "." ++ ansiBlue flags.testName)
                     ++ Maybe.withDefault ""
                         (Maybe.map
-                            (\\seed ->
-                                "\\n↻ seeded with "
+                            (\seed ->
+                                "\n↻ seeded with "
                                     ++ ansiYellow (String.fromInt seed)
                             )
                             flags.seed
@@ -171,13 +152,13 @@ foldRun runner outputPart =
                 , failCount = outputPart.failCount + 1
                 , message =
                     List.foldl
-                        (\\failure message ->
+                        (\failure message ->
                             message
-                                ++ Maybe.withDefault "" (Maybe.map ((++) "\\n\\ngiven ") failure.given)
-                                ++ "\\n\\n"
+                                ++ Maybe.withDefault "" (Maybe.map ((++) "\n\ngiven ") failure.given)
+                                ++ "\n\n"
                                 ++ Test.Runner.Failure.format failure.description failure.reason
                         )
-                        (String.join "\\n"
+                        (String.join "\n"
                             (Test.Runner.formatLabels
                                 ((++) "↓ ")
                                 ((++) (ansiRed "✗ ") << ansiBlue)
@@ -185,14 +166,14 @@ foldRun runner outputPart =
                             )
                         )
                         failures
-                        ++ "\\n\\n"
+                        ++ "\n\n"
                         ++ outputPart.message
             }
 
 
 suite : Test.Test
 suite =
-    Test.test "one is zero" (\\_ -> Expect.equal 1 0)
+    Test.test "one is zero" (\_ -> Expect.equal 1 0)
 
 
 
@@ -221,6 +202,4 @@ ansiBlue =
 
 ansi : Int -> String -> String
 ansi n text =
-    "\\u{001B}[" ++ String.fromInt n ++ "m" ++ text ++ "\\u{001B}[0m"
-`
-    
+    "\u{001B}[" ++ String.fromInt n ++ "m" ++ text ++ "\u{001B}[0m"

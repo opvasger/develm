@@ -1,4 +1,4 @@
-port module Main exposing (main)
+port module RunMain exposing (main)
 
 import Dev
 import DevElm
@@ -11,7 +11,7 @@ port output : Json.Encode.Value -> Cmd msg
 main : Program () () ()
 main =
     Platform.worker
-        { init = always ( (), output (DevElm.encodeConfiguration Dev.config) )
+        { init = always ( (), output (DevElm.encodeFlags Dev.flags) )
         , update = always (always ( (), Cmd.none ))
         , subscriptions = always Sub.none
         }

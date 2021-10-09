@@ -1,27 +1,30 @@
 module DevElm exposing
-    ( Configuration(..)
-    , LogConfiguration(..)
-    , BuildConfiguration, Format(..), Mode(..), defaultBuild
-    , ServeConfiguration, defaultServe
-    , encodeConfiguration
+    ( Flags(..)
+    , LogFlags(..)
+    , BuildFlags, Format(..), Mode(..), defaultBuild
+    , ServeFlags, defaultServe
+    , TestFlags, defaultTest
+    , encodeFlags
     )
 
 {-|
 
-@docs Configuration
+@docs Flags
 
-@docs LogConfiguration
+@docs LogFlags
 
-@docs BuildConfiguration, Format, Mode, defaultBuild
+@docs BuildFlags, Format, Mode, defaultBuild
 
-@docs ServeConfiguration, defaultServe
+@docs ServeFlags, defaultServe
+
+@docs TestFlags, defaultTest
 
 
 ## Internals
 
-These definitions are for program-authors who want to consume the configuration for their own programs.
+These definitions are for program-authors who want to consume the Flags for their own programs.
 
-@docs encodeConfiguration
+@docs encodeFlags
 
 -}
 
@@ -29,46 +32,50 @@ import Dict exposing (Dict)
 import Json.Encode
 
 
-{-| Configuration for the `develm` program.
+{-| Flags for the `develm` program.
 
   - `Batch` performs tasks unordered.
   - `Sequence` performs tasks sequentially.
   - `OneOf` performs tasks optionally - `OneOf [("build", Build defaultBuild)]` is performed with `develm build`.
 
 -}
-type Configuration
-    = Log LogConfiguration
-    | Build BuildConfiguration
-    | Serve ServeConfiguration
-    | Batch (List Configuration)
-    | Sequence (List Configuration)
-    | OneOf (List ( String, Configuration ))
+type Flags
+    = Batch (List Flags)
+    | Sequence (List Flags)
+    | OneOf (List ( String, Flags ))
+    | Log LogFlags
+    | Build BuildFlags
+    | Serve ServeFlags
+    | Test TestFlags
 
 
-{-| Encode a configuration as JSON.
+{-| Encode a Flags as JSON.
 -}
-encodeConfiguration : Configuration -> Json.Encode.Value
-encodeConfiguration config =
+encodeFlags : Flags -> Json.Encode.Value
+encodeFlags flags =
     let
         ( type_, value ) =
-            case config of
-                Log logConfig ->
-                    ( "Log", encodeLogConfiguration logConfig )
+            case flags of
+                Batch subFlags ->
+                    ( "Batch", Json.Encode.list encodeFlags subFlags )
 
-                Build buildConfig ->
-                    ( "Build", encodeBuildConfiguration buildConfig )
-
-                Serve serveConfig ->
-                    ( "Serve", encodeServeConfiguration serveConfig )
-
-                Batch configs ->
-                    ( "Batch", Json.Encode.list encodeConfiguration configs )
-
-                Sequence configs ->
-                    ( "Sequence", Json.Encode.list encodeConfiguration configs )
+                Sequence subFlags ->
+                    ( "Sequence", Json.Encode.list encodeFlags subFlags )
 
                 OneOf pairs ->
-                    ( "OneOf", Json.Encode.dict identity encodeConfiguration (Dict.fromList pairs) )
+                    ( "OneOf", Json.Encode.dict identity encodeFlags (Dict.fromList pairs) )
+
+                Log logflags ->
+                    ( "Log", encodeLogFlags logflags )
+
+                Build buildflags ->
+                    ( "Build", encodeBuildFlags buildflags )
+
+                Serve serveflags ->
+                    ( "Serve", encodeServeFlags serveflags )
+
+                Test testflags ->
+                    ( "Test", encodeTestFlags testflags )
     in
     Json.Encode.object
         [ ( "type", Json.Encode.string type_ )
@@ -82,16 +89,16 @@ encodeConfiguration config =
 
 {-| Log text messages to the console.
 -}
-type LogConfiguration
+type LogFlags
     = Text String
     | Version
 
 
-encodeLogConfiguration : LogConfiguration -> Json.Encode.Value
-encodeLogConfiguration config =
+encodeLogFlags : LogFlags -> Json.Encode.Value
+encodeLogFlags flags =
     let
         ( type_, value ) =
-            case config of
+            case flags of
                 Text text ->
                     ( "Text", Json.Encode.string text )
 
@@ -108,9 +115,9 @@ encodeLogConfiguration config =
 -- Build
 
 
-{-| Configure DevElm to build an elm program.
+{-| Flag DevElm to build an elm program.
 -}
-type alias BuildConfiguration =
+type alias BuildFlags =
     { moduleName : String
     , outputPath : Maybe String
     , format : Format
@@ -118,9 +125,9 @@ type alias BuildConfiguration =
     }
 
 
-{-| The default-configuration for building Elm programs. It makes an unoptimized build of a module named `Main` into `build/main.js`
+{-| The default-Flags for building Elm programs. It makes an unoptimized build of a module named `Main` into `build/main.js`
 -}
-defaultBuild : BuildConfiguration
+defaultBuild : BuildFlags
 defaultBuild =
     { moduleName = defaultServe.moduleName
     , outputPath = Just defaultServe.outputPath
@@ -129,8 +136,8 @@ defaultBuild =
     }
 
 
-encodeBuildConfiguration : BuildConfiguration -> Json.Encode.Value
-encodeBuildConfiguration { moduleName, outputPath, format, mode } =
+encodeBuildFlags : BuildFlags -> Json.Encode.Value
+encodeBuildFlags { moduleName, outputPath, format, mode } =
     Json.Encode.object
         [ ( "moduleName", Json.Encode.string moduleName )
         , ( "outputPath"
@@ -142,7 +149,7 @@ encodeBuildConfiguration { moduleName, outputPath, format, mode } =
         ]
 
 
-{-| Configure what format the program should be built to.
+{-| Flag what format the program should be built to.
 
   - `EcmaScriptModule` allows for native JavaScript-module imports.
   - `ImmediatelyInvokedFunctionInvocation` exposes the `Elm` global along with a Node-compatible module.
@@ -163,7 +170,7 @@ encodeFormat format =
             Json.Encode.string "esm"
 
 
-{-| Configure what mode the program should be built in.
+{-| Flag what mode the program should be built in.
 
   - `Develop` is a development-build.
   - `Debug` is a development-build that includes the time-travelling debugger.
@@ -193,9 +200,9 @@ encodeMode mode =
 -- Serve
 
 
-{-| Configure DevElm to build an elm program.
+{-| Flag DevElm to serve an elm program over HTTP.
 -}
-type alias ServeConfiguration =
+type alias ServeFlags =
     { moduleName : String
     , hostname : String
     , port_ : Int
@@ -207,9 +214,9 @@ type alias ServeConfiguration =
     }
 
 
-{-| The default-configuration for serving Elm programs. It assumes no HTML-document is present.
+{-| The default-Flags for serving Elm programs. It assumes no HTML-document is present.
 -}
-defaultServe : ServeConfiguration
+defaultServe : ServeFlags
 defaultServe =
     { moduleName = "Main"
     , hostname = "localhost"
@@ -231,8 +238,8 @@ defaultServe =
     }
 
 
-encodeServeConfiguration : ServeConfiguration -> Json.Encode.Value
-encodeServeConfiguration { moduleName, hostname, port_, mode, outputPath, documentPath, contentTypes, headers } =
+encodeServeFlags : ServeFlags -> Json.Encode.Value
+encodeServeFlags { moduleName, hostname, port_, mode, outputPath, documentPath, contentTypes, headers } =
     Json.Encode.object
         [ ( "moduleName", Json.Encode.string moduleName )
         , ( "hostname", Json.Encode.string hostname )
@@ -243,3 +250,38 @@ encodeServeConfiguration { moduleName, hostname, port_, mode, outputPath, docume
         , ( "contentTypes", Json.Encode.dict identity Json.Encode.string contentTypes )
         , ( "headers", Json.Encode.dict identity Json.Encode.string headers )
         ]
+
+
+
+-- Test
+
+
+{-| Flag DevElm to test Elm functions.
+-}
+type alias TestFlags =
+    { seed : Maybe Int
+    , fuzz : Int
+    , moduleName : String
+    , testName : String
+    }
+
+
+encodeTestFlags : TestFlags -> Json.Encode.Value
+encodeTestFlags { seed, fuzz, moduleName, testName } =
+    Json.Encode.object
+        [ ( "seed", Maybe.withDefault Json.Encode.null (Maybe.map Json.Encode.int seed) )
+        , ( "fuzz", Json.Encode.int fuzz )
+        , ( "moduleName", Json.Encode.string moduleName )
+        , ( "testName", Json.Encode.string testName )
+        ]
+
+
+{-| The default-Flags for testing Elm functions.
+-}
+defaultTest : TestFlags
+defaultTest =
+    { seed = Nothing
+    , fuzz = 100
+    , moduleName = "Main"
+    , testName = "suite"
+    }
