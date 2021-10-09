@@ -16,6 +16,15 @@ type alias Output =
     }
 
 
+emptyOutput : Output
+emptyOutput =
+    { exitCode = 0
+    , message = ""
+    , passCount = 0
+    , failCount = 0
+    }
+
+
 port output : Output -> Cmd msg
 
 
@@ -42,38 +51,29 @@ update : ( DevElm.TestFlags, Random.Seed ) -> Cmd msg
 update ( flags, seed ) =
     case Test.Runner.fromTest flags.fuzz seed suite of
         Test.Runner.Plain runners ->
-            run flags
-                runners
-                { exitCode = 0
-                , message = ""
-                , passCount = 0
-                , failCount = 0
-                }
+            run flags runners emptyOutput
 
         Test.Runner.Only runners ->
             run flags
                 runners
-                { exitCode = 1
-                , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.only" ++ "\n"
-                , passCount = 0
-                , failCount = 0
+                { emptyOutput
+                    | exitCode = 1
+                    , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.only" ++ "\n"
                 }
 
         Test.Runner.Skipping runners ->
             run flags
                 runners
-                { exitCode = 1
-                , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.skip" ++ "\n"
-                , passCount = 0
-                , failCount = 0
+                { emptyOutput
+                    | exitCode = 1
+                    , message = ansiRed "✗" ++ " ran using " ++ ansiRed "Test.skip" ++ "\n"
                 }
 
         Test.Runner.Invalid error ->
             output
-                { exitCode = 1
-                , message = error
-                , passCount = 0
-                , failCount = 0
+                { emptyOutput
+                    | exitCode = 1
+                    , message = error
                 }
 
 

@@ -1,4 +1,4 @@
-import { runPiped, toModuleFilePath, withTemporaryFolder } from "./help.ts";
+import { randomInt, runPiped, withTemporaryFolder } from "./help.ts";
 
 import { testModule } from "../build/template.ts";
 
@@ -34,9 +34,7 @@ export default async function (flags: TestFlags) {
         `${tempDirPath}/runTest.js`,
       );
       let scope: any = {};
-      flags.seed = flags.seed !== null
-        ? flags.seed
-        : Math.floor(Math.random() * 0xFFFFFFFF);
+      flags.seed = flags.seed !== null ? flags.seed : randomInt();
       eval(compiled.replace("(this)", "(scope)"));
       return new Promise((resolve) =>
         scope.Elm.RunTest.init({ flags: flags }).ports.output.subscribe(

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.106.0/http/mod.ts";
 
 import build from "./build.ts";
+import { ANSI, ansi } from "./help.ts";
 
 export type ServeFlags = {
   moduleName: string;
@@ -14,7 +15,16 @@ export type ServeFlags = {
 };
 
 export default async function (flags: ServeFlags) {
-  for await (const request of serve(flags)) {
+  const server = serve(flags);
+  console.log(
+    `⚡ served from ${
+      ansi(
+        ANSI.Yellow,
+        ansi(ANSI.Underline, `http://${flags.hostname}:${flags.port}`),
+      )
+    }`,
+  );
+  for await (const request of server) {
     let error = null;
     if (request.url === "/") {
       if (flags.documentPath) request.url = `/${flags.documentPath}`;
