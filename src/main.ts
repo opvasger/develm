@@ -88,10 +88,10 @@ function toReadFlags(devFlags?: DevelopmentFlags) {
     const compiled = await Deno.readTextFile(
       `${tempDirPath}/runMain.js`,
     );
-    let scope: any = {};
-    eval(compiled.replace("(this)", "(scope)"));
+
+    eval(compiled.replace("(this)", "(globalThis)"));
     return await new Promise((resolve) =>
-      scope.Elm.RunMain.init().ports.output.subscribe(resolve)
+      (globalThis as any).Elm.RunMain.init().ports.output.subscribe(resolve)
     );
   };
 }
@@ -145,9 +145,15 @@ function toElmJson(devFlags?: DevelopmentFlags) {
     "elm/core": "1.0.5",
     "elm/json": "1.1.3",
   };
+  const indirect: { [key: string]: string } = {};
 
   if (!devFlags) {
     direct["opvasger/develm"] = version.join(".");
+    indirect["elm/html"] = "1.0.0";
+    indirect["elm/random"] = "1.0.0";
+    indirect["elm/time"] = "1.0.0";
+    indirect["elm/virtual-dom"] = "1.0.2";
+    indirect["elm-explorations/test"] = "1.2.2";
   }
   return {
     type: "application",
@@ -155,7 +161,7 @@ function toElmJson(devFlags?: DevelopmentFlags) {
     "elm-version": "0.19.1",
     dependencies: {
       direct,
-      indirect: {},
+      indirect,
     },
     "test-dependencies": {
       direct: {},

@@ -1,4 +1,4 @@
-export const version : [number,number,number] = [5,0,0]
+export const version : [number,number,number] = [5,0,1]
   export const mainModule : string = `port module RunMain exposing (main)
 
 import Dev

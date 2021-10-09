@@ -33,16 +33,16 @@ export default async function (flags: TestFlags) {
       const compiled = await Deno.readTextFile(
         `${tempDirPath}/runTest.js`,
       );
-      let scope: any = {};
       flags.seed = flags.seed !== null ? flags.seed : randomInt();
-      eval(compiled.replace("(this)", "(scope)"));
+      eval(compiled.replace("(this)", "(globalThis)"));
       return new Promise((resolve) =>
-        scope.Elm.RunTest.init({ flags: flags }).ports.output.subscribe(
-          (output: { message: String; exitCode: number }) => {
-            console.log(output.message);
-            resolve(output.exitCode);
-          },
-        )
+        (globalThis as any).Elm.RunTest.init({ flags: flags }).ports.output
+          .subscribe(
+            (output: { message: String; exitCode: number }) => {
+              console.log(output.message);
+              resolve(output.exitCode);
+            },
+          )
       );
     },
   );
