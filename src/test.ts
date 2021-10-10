@@ -17,7 +17,7 @@ export default async function (flags: TestFlags) {
         `${tempDirPath}/RunTest.elm`,
         testModule.replace("import", `import ${flags.moduleName}\nimport`)
           .replace(
-            "suite",
+            "test",
             `${flags.moduleName}.${flags.testName}`,
           ),
       );

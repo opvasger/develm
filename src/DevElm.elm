@@ -4,6 +4,7 @@ module DevElm exposing
     , BuildFlags, Format(..), Mode(..), defaultBuild
     , ServeFlags, defaultServe
     , TestFlags, defaultTest
+    , BenchmarkFlags, defaultBenchmark
     , encodeFlags
     )
 
@@ -19,10 +20,12 @@ module DevElm exposing
 
 @docs TestFlags, defaultTest
 
+@docs BenchmarkFlags, defaultBenchmark
+
 
 ## Internals
 
-These definitions are for program-authors who want to consume the Flags for their own programs.
+These definitions are for program-authors who want to consume the flags for their own programs.
 
 @docs encodeFlags
 
@@ -47,9 +50,10 @@ type Flags
     | Build BuildFlags
     | Serve ServeFlags
     | Test TestFlags
+    | Benchmark BenchmarkFlags
 
 
-{-| Encode a Flags as JSON.
+{-| Encode flags as JSON.
 -}
 encodeFlags : Flags -> Json.Encode.Value
 encodeFlags flags =
@@ -76,6 +80,9 @@ encodeFlags flags =
 
                 Test testflags ->
                     ( "Test", encodeTestFlags testflags )
+
+                Benchmark benchmarkflags ->
+                    ( "Benchmark", encodeBenchmarkFlags benchmarkflags )
     in
     Json.Encode.object
         [ ( "type", Json.Encode.string type_ )
@@ -87,7 +94,7 @@ encodeFlags flags =
 -- Log
 
 
-{-| Log text messages to the console.
+{-| Log text to the console.
 -}
 type LogFlags
     = Text String
@@ -125,7 +132,7 @@ type alias BuildFlags =
     }
 
 
-{-| The default-Flags for building Elm programs. It makes an unoptimized build of a module named `Main` into `build/main.js`
+{-| The default-flags for building Elm programs. It makes an unoptimized build of a module named `Main` into `build/main.js`
 -}
 defaultBuild : BuildFlags
 defaultBuild =
@@ -214,7 +221,7 @@ type alias ServeFlags =
     }
 
 
-{-| The default-Flags for serving Elm programs. It assumes no HTML-document is present.
+{-| The default-flags for serving Elm programs. It assumes no HTML-document is present.
 -}
 defaultServe : ServeFlags
 defaultServe =
@@ -276,12 +283,41 @@ encodeTestFlags { seed, fuzz, moduleName, testName } =
         ]
 
 
-{-| The default-Flags for testing Elm functions.
+{-| The default-flags for testing Elm functions.
 -}
 defaultTest : TestFlags
 defaultTest =
     { seed = Nothing
     , fuzz = 100
     , moduleName = "Main"
-    , testName = "suite"
+    , testName = "test"
+    }
+
+
+
+-- Benchmark
+
+
+{-| Flag DevElm to benchmark Elm functions.
+-}
+type alias BenchmarkFlags =
+    { moduleName : String
+    , benchmarkName : String
+    }
+
+
+encodeBenchmarkFlags : BenchmarkFlags -> Json.Encode.Value
+encodeBenchmarkFlags { moduleName, benchmarkName } =
+    Json.Encode.object
+        [ ( "moduleName", Json.Encode.string moduleName )
+        , ( "benchmarkName", Json.Encode.string benchmarkName )
+        ]
+
+
+{-| The default-flags for benchmarking Elm functions.
+-}
+defaultBenchmark : BenchmarkFlags
+defaultBenchmark =
+    { moduleName = "Main"
+    , benchmarkName = "benchmark"
     }
