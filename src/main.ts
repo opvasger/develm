@@ -2,6 +2,8 @@ import log, { LogFlags } from "./log.ts";
 import build, { BuildFlags } from "./build.ts";
 import serve, { ServeFlags } from "./serve.ts";
 import test, { TestFlags } from "./test.ts";
+import benchmark, { BenchmarkFlags } from "./benchmark.ts";
+
 import {
   runPiped,
   sequencePromises,
@@ -12,31 +14,14 @@ import {
 import { mainModule, version } from "../build/template.ts";
 
 type Flags =
-  | {
-    type: "Batch";
-    value: Array<Flags>;
-  }
-  | {
-    type: "Sequence";
-    value: Array<Flags>;
-  }
-  | {
-    type: "OneOf";
-    value: { [key: string]: Flags | undefined };
-  }
-  | {
-    type: "Log";
-    value: LogFlags;
-  }
-  | {
-    type: "Build";
-    value: BuildFlags;
-  }
-  | {
-    type: "Serve";
-    value: ServeFlags;
-  }
-  | { type: "Test"; value: TestFlags };
+  | { type: "Batch"; value: Array<Flags> }
+  | { type: "Sequence"; value: Array<Flags> }
+  | { type: "OneOf"; value: { [key: string]: Flags | undefined } }
+  | { type: "Log"; value: LogFlags }
+  | { type: "Build"; value: BuildFlags }
+  | { type: "Serve"; value: ServeFlags }
+  | { type: "Test"; value: TestFlags }
+  | { type: "Benchmark"; value: BenchmarkFlags };
 
 export type DevelopmentFlags = {
   packageModuleSource: string;
@@ -133,7 +118,9 @@ function toRunFlags(args: Array<string>) {
       case "Test":
         await test(flags.value);
         break;
-
+      case "Benchmark":
+        await benchmark(flags.value);
+        break;
       default:
         throw `unrecognized flags: ${JSON.stringify(flags)}`;
     }

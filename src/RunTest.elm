@@ -49,7 +49,7 @@ init flags =
 
 update : ( DevElm.TestFlags, Random.Seed ) -> Cmd msg
 update ( flags, seed ) =
-    case Test.Runner.fromTest flags.fuzz seed suite of
+    case Test.Runner.fromTest flags.fuzz seed test of
         Test.Runner.Plain runners ->
             run flags runners emptyOutput
 
@@ -171,8 +171,8 @@ foldRun runner outputPart =
             }
 
 
-suite : Test.Test
-suite =
+test : Test.Test
+test =
     Test.test "one is zero" (\_ -> Expect.equal 1 0)
 
 
