@@ -11,7 +11,7 @@ import {
   withTemporaryFolder,
 } from "./help.ts";
 
-import { mainModule, version } from "../build/template.ts";
+import { elmJson, mainElmJson, mainModule } from "../build/template.ts";
 
 type Flags =
   | { type: "Batch"; value: Array<Flags> }
@@ -37,16 +37,23 @@ export default async function (
   );
   await toRunFlags(args)(flags);
 }
+
 // Flags
 
 function toReadFlags(devFlags?: DevelopmentFlags) {
   return async (tempDirPath: string): Promise<Flags> => {
     const flagsFilePath = await toModuleFilePath("Dev");
+    if (!devFlags) {
+      (mainElmJson.dependencies.direct as { [key: string]: string })[
+        "opvasger/develm"
+      ] = elmJson.version;
+    }
+
     await Promise.all([
       Deno.writeTextFile(`${tempDirPath}/RunMain.elm`, mainModule),
       Deno.writeTextFile(
         `${tempDirPath}/elm.json`,
-        JSON.stringify(toElmJson(devFlags)),
+        JSON.stringify(mainElmJson),
       ),
       Deno.writeTextFile(
         `${tempDirPath}/Dev.elm`,
@@ -106,7 +113,7 @@ function toRunFlags(args: Array<string>) {
         break;
 
       case "Log":
-        log(version, flags.value);
+        log(elmJson.version, flags.value);
         break;
       case "Build":
         await build(flags.value);
@@ -124,35 +131,5 @@ function toRunFlags(args: Array<string>) {
       default:
         throw `unrecognized flags: ${JSON.stringify(flags)}`;
     }
-  };
-}
-
-function toElmJson(devFlags?: DevelopmentFlags) {
-  const direct: { [key: string]: string } = {
-    "elm/core": "1.0.5",
-    "elm/json": "1.1.3",
-  };
-  const indirect: { [key: string]: string } = {};
-
-  if (!devFlags) {
-    direct["opvasger/develm"] = version.join(".");
-    indirect["elm/html"] = "1.0.0";
-    indirect["elm/random"] = "1.0.0";
-    indirect["elm/time"] = "1.0.0";
-    indirect["elm/virtual-dom"] = "1.0.2";
-    indirect["elm-explorations/test"] = "1.2.2";
-  }
-  return {
-    type: "application",
-    "source-directories": ["."],
-    "elm-version": "0.19.1",
-    dependencies: {
-      direct,
-      indirect,
-    },
-    "test-dependencies": {
-      direct: {},
-      indirect: {},
-    },
   };
 }

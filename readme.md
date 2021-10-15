@@ -1,6 +1,6 @@
 # DevElm
 
-Develop Elm programs with ease!
+Test, benchmark, and build Elm-modules!
 
 ## Setup
 
@@ -18,7 +18,13 @@ website.
 ## Usage
 
 1. run `elm install opvasger/develm` to install the flags-package.
-2. create a `Dev.elm` module in a source-directory. It should import `DevElm`
+2. as a temporary caveat, move the following packages from indirect- to
+   direct-dependencies:
+   - `BrianHicks/elm-trend`
+   - `elm-explorations/test`
+   - `elm-explorations/benchmark`
+   - `elm/random`
+3. create a `Dev.elm` module in a source-directory. It should import `DevElm`
    and expose a `flags`-definition of type `DevElm.Flags` - for example like
    this:
 

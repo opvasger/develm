@@ -23,7 +23,7 @@ main =
 update : Benchmark.Benchmark -> Cmd Benchmark.Benchmark
 update bench =
     if Benchmark.done bench then
-        output ("\n" ++ String.join "\n\n" (List.map printXYZ (xyzFromReport (Benchmark.Reporting.fromBenchmark bench))))
+        output ("\n" ++ String.join "\n\n" (List.map printBenchmarkResults (resultFromReport (Benchmark.Reporting.fromBenchmark bench))))
 
     else
         Task.perform identity (Benchmark.step bench)
@@ -38,29 +38,29 @@ benchmark =
 -- Report
 
 
-type alias XYZ =
+type alias BenchmarkResults =
     ( List String, Benchmark.Status.Status )
 
 
-xyzFromReport : Benchmark.Reporting.Report -> List XYZ
-xyzFromReport initReport =
+resultFromReport : Benchmark.Reporting.Report -> List BenchmarkResults
+resultFromReport initReport =
     let
-        evaluate report labels xyzs =
+        evaluate report labels results =
             case report of
                 Benchmark.Reporting.Single label status ->
-                    xyzs ++ [ ( labels ++ [ printStatusLabel status (ansiBlue label) ], status ) ]
+                    results ++ [ ( labels ++ [ printStatusLabel status (ansiBlue label) ], status ) ]
 
                 Benchmark.Reporting.Series label pairs ->
-                    xyzs ++ List.map (\( l, s ) -> ( labels ++ [ printLabel (ansiYellow label), printStatusLabel s l ], s )) pairs
+                    results ++ List.map (\( l, s ) -> ( labels ++ [ printLabel (ansiYellow label), printStatusLabel s l ], s )) pairs
 
                 Benchmark.Reporting.Group label reports ->
-                    xyzs ++ List.concat (List.map (\r -> evaluate r (labels ++ [ printLabel label ]) []) reports)
+                    results ++ List.concat (List.map (\r -> evaluate r (labels ++ [ printLabel label ]) []) reports)
     in
     evaluate initReport [] []
 
 
-printXYZ : XYZ -> String
-printXYZ ( labels, status ) =
+printBenchmarkResults : BenchmarkResults -> String
+printBenchmarkResults ( labels, status ) =
     String.join "\n" (labels ++ [ printStatus status ])
 
 

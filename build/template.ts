@@ -1,4 +1,5 @@
-export const version : [number,number,number] = [6,0,0]
+export const elmJson = {"type":"package","name":"opvasger/develm","summary":"Test, benchmark, and build Elm-modules!","license":"BSD-3-Clause","version":"6.0.1","exposed-modules":["DevElm"],"elm-version":"0.19.0 <= v < 0.20.0","dependencies":{"BrianHicks/elm-trend":"2.1.3 <= v < 3.0.0","elm/core":"1.0.5 <= v < 2.0.0","elm/json":"1.1.3 <= v < 2.0.0","elm/random":"1.0.0 <= v < 2.0.0","elm-explorations/benchmark":"1.0.2 <= v < 2.0.0","elm-explorations/test":"1.2.2 <= v < 2.0.0"},"test-dependencies":{}}
+  export const mainElmJson = {"type":"application","source-directories":["."],"elm-version":"0.19.1","dependencies":{"direct":{"elm/core":"1.0.5","elm/json":"1.1.3"},"indirect":{"BrianHicks/elm-trend":"2.1.3","elm/browser":"1.0.2","elm/html":"1.0.0","elm/random":"1.0.0","elm/regex":"1.0.0","elm/time":"1.0.0","elm/url":"1.0.0","elm/virtual-dom":"1.0.2","elm-explorations/benchmark":"1.0.2","elm-explorations/test":"1.2.2","mdgriffith/style-elements":"5.0.2","robinheghan/murmur3":"1.0.0"}},"test-dependencies":{"direct":{},"indirect":{}}}
   export const mainModule : string = `port module RunMain exposing (main)
 
 import Dev
@@ -248,7 +249,7 @@ main =
 update : Benchmark.Benchmark -> Cmd Benchmark.Benchmark
 update bench =
     if Benchmark.done bench then
-        output ("\\n" ++ String.join "\\n\\n" (List.map printXYZ (xyzFromReport (Benchmark.Reporting.fromBenchmark bench))))
+        output ("\\n" ++ String.join "\\n\\n" (List.map printBenchmarkResults (resultFromReport (Benchmark.Reporting.fromBenchmark bench))))
 
     else
         Task.perform identity (Benchmark.step bench)
@@ -263,29 +264,29 @@ benchmark =
 -- Report
 
 
-type alias XYZ =
+type alias BenchmarkResults =
     ( List String, Benchmark.Status.Status )
 
 
-xyzFromReport : Benchmark.Reporting.Report -> List XYZ
-xyzFromReport initReport =
+resultFromReport : Benchmark.Reporting.Report -> List BenchmarkResults
+resultFromReport initReport =
     let
-        evaluate report labels xyzs =
+        evaluate report labels results =
             case report of
                 Benchmark.Reporting.Single label status ->
-                    xyzs ++ [ ( labels ++ [ printStatusLabel status (ansiBlue label) ], status ) ]
+                    results ++ [ ( labels ++ [ printStatusLabel status (ansiBlue label) ], status ) ]
 
                 Benchmark.Reporting.Series label pairs ->
-                    xyzs ++ List.map (\\( l, s ) -> ( labels ++ [ printLabel (ansiYellow label), printStatusLabel s l ], s )) pairs
+                    results ++ List.map (\\( l, s ) -> ( labels ++ [ printLabel (ansiYellow label), printStatusLabel s l ], s )) pairs
 
                 Benchmark.Reporting.Group label reports ->
-                    xyzs ++ List.concat (List.map (\\r -> evaluate r (labels ++ [ printLabel label ]) []) reports)
+                    results ++ List.concat (List.map (\\r -> evaluate r (labels ++ [ printLabel label ]) []) reports)
     in
     evaluate initReport [] []
 
 
-printXYZ : XYZ -> String
-printXYZ ( labels, status ) =
+printBenchmarkResults : BenchmarkResults -> String
+printBenchmarkResults ( labels, status ) =
     String.join "\\n" (labels ++ [ printStatus status ])
 
 

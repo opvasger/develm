@@ -1,4 +1,4 @@
-import { runPiped, withTemporaryFolder } from "./help.ts";
+import { ANSI, ansi, runPiped, withTemporaryFolder } from "./help.ts";
 
 import { benchmarkModule } from "../build/template.ts";
 
@@ -43,6 +43,10 @@ export default async function (flags: BenchmarkFlags) {
       );
     },
   );
-
+  console.log(
+    `\n${
+      ansi(ANSI.Green, "▶")
+    } ran using the v8 javascript engine, v${Deno.version.v8}`,
+  );
   Deno.exit(0);
 }
