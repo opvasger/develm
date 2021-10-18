@@ -1,4 +1,1 @@
 elm-stuff
-build/**/*
-!build/template.ts
-example
