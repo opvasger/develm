@@ -7,7 +7,6 @@ module DevElm exposing
     , BenchmarkFlags, defaultBenchmark, benchmarkWith
     , BuildFormat, esm, iife
     , BuildMode, develop, debug, optimize
-    , toJson
     )
 
 {-|
@@ -52,17 +51,11 @@ module DevElm exposing
 
 @docs BuildMode, develop, debug, optimize
 
-
-# Internals
-
-@docs toJson
-
 -}
 
 import Benchmark exposing (Benchmark)
 import DevElm.Main
 import Dict
-import Json.Encode
 import Test exposing (Test)
 
 
@@ -86,12 +79,6 @@ sequence =
 oneOf : List ( String, Flags flags ) -> Flags flags
 oneOf =
     DevElm.Main.OneOf
-
-
-{-| -}
-toJson : Flags flags -> Json.Encode.Value
-toJson =
-    DevElm.Main.toJson
 
 
 type alias LogFlags =
@@ -118,16 +105,15 @@ type alias BuildFlags flags =
 {-| -}
 defaultBuild : BuildFlags {}
 defaultBuild =
-    { moduleName = "Main"
-    , outputPath = Just "build/main.js"
+    { outputPath = Just "build/main.js"
     , format = DevElm.Main.ImmediatelyInvokedFunctionInvocation
     , mode = DevElm.Main.Develop
     }
 
 
 {-| -}
-buildWith : BuildFlags flags -> Flags flags
-buildWith flags =
+buildWith : BuildFlags flags -> Program programFlags model msg -> Flags flags
+buildWith flags program =
     DevElm.Main.Build flags
 
 
@@ -139,11 +125,11 @@ type alias ServeFlags flags =
 {-| -}
 defaultServe : ServeFlags {}
 defaultServe =
-    { moduleName = "Main"
+    { outputPath = "build/main.js"
+    , format = DevElm.Main.ImmediatelyInvokedFunctionInvocation
+    , mode = DevElm.Main.Develop
     , hostName = "localhost"
     , portNumber = 8080
-    , mode = DevElm.Main.Develop
-    , outputPath = "build/main.js"
     , documentPath = Nothing
     , headers = Dict.empty
     , contentTypes =
@@ -160,9 +146,9 @@ defaultServe =
 
 
 {-| -}
-serveWith : ServeFlags flags -> Flags flags
-serveWith =
-    DevElm.Main.Serve
+serveWith : ServeFlags flags -> Program programFlags model msg -> Flags flags
+serveWith flags program =
+    DevElm.Main.Serve flags
 
 
 {-| -}
@@ -171,18 +157,17 @@ type alias TestFlags flags =
 
 
 {-| -}
-defaultTest : Test -> TestFlags {}
-defaultTest test =
+defaultTest : TestFlags {}
+defaultTest =
     { seed = Nothing
     , fuzz = 100
-    , test = test
     }
 
 
 {-| -}
-testWith : TestFlags flags -> Flags flags
-testWith =
-    DevElm.Main.Test
+testWith : TestFlags flags -> Test -> Flags flags
+testWith flags test =
+    DevElm.Main.Test flags
 
 
 {-| -}
@@ -191,16 +176,15 @@ type alias BenchmarkFlags flags =
 
 
 {-| -}
-defaultBenchmark : Benchmark -> BenchmarkFlags {}
-defaultBenchmark benchmark =
-    { benchmark = benchmark
-    }
+defaultBenchmark : BenchmarkFlags {}
+defaultBenchmark =
+    {}
 
 
 {-| -}
-benchmarkWith : BenchmarkFlags flags -> Flags flags
-benchmarkWith =
-    DevElm.Main.Benchmark
+benchmarkWith : BenchmarkFlags flags -> Benchmark -> Flags flags
+benchmarkWith flags benchmark =
+    DevElm.Main.Benchmark flags
 
 
 {-| -}
