@@ -3,7 +3,7 @@
   "name": "opvasger/develm",
   "summary": "Test, benchmark, and build Elm-modules!",
   "license": "BSD-3-Clause",
-  "version": "6.0.1",
+  "version": "7.0.0",
   "exposed-modules": [
     "DevElm"
   ],
